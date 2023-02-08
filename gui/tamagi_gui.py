@@ -154,8 +154,8 @@ title = v.CardTitle(class_="d-flex align-start m-2 title font-weight-medium whit
 
 # --- Data pages ---
 # HF Radio page
-muf_north_img = v.Card(children=[], img="muf_north_pole.png", width=675, height=595)
-muf_south_img = v.Card(children=[], img="muf_south_pole.png", width=675, height=595)
+muf_north_img = v.Card(children=[], img="muf_north_pole.png", width=675, height=595, class_="my-2 mx-2")
+muf_south_img = v.Card(children=[], img="muf_south_pole.png", width=675, height=595, class_="my-2 mx-2")
 
 hf_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["HF Radio"]),
                                               v.CardText(children=["Maximum usable frequency (MUF):\n"
@@ -165,7 +165,7 @@ hf_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["HF Radio"])
                                               muf_south_img
                                               ],
                                     )
-                             ], width=1000, height=800)
+                             ], width=1000, height=1200)
 hf_page.v_model = False
 
 # Space Operations page
