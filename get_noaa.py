@@ -38,46 +38,76 @@ class NoaaScales:
     directory = '/products/noaa-scales.json'
 
     def __init__(self):
-        raw_data = get_json(directory)
-        R = int(raw_data['0']['R']['Scale'])
-        G = int(raw_data['0']['G']['Scale'])
-        S = int(raw_data['0']['S']['Scale'])
-        R_forecast = ({'Minor_p': raw_data['1']['R']['MinorProb'], 'Major_p': raw_data['1']['R']['MajorProb']},
-                      {'Minor_p': raw_data['2']['R']['MinorProb'], 'Major_p': raw_data['2']['R']['MajorProb']})
-        G_forecast = (raw_data['1']['G']['Scale'], raw_data['2']['G']['Scale'])
-        S_forecast = (raw_data['1']['S']['Prob'], raw_data['2']['S']['Prob'])
+        raw_data = get_json(self.directory)
+        self.R = int(raw_data['0']['R']['Scale'])
+        self.G = int(raw_data['0']['G']['Scale'])
+        self.S = int(raw_data['0']['S']['Scale'])
+        self.R_forecast = ({'Minor_p': int(raw_data['1']['R']['MinorProb']),
+                            'Major_p': int(raw_data['1']['R']['MajorProb'])
+                            },
+                           {'Minor_p': int(raw_data['2']['R']['MinorProb']),
+                            'Major_p': int(raw_data['2']['R']['MajorProb'])
+                            }
+                           )
+        self.G_forecast = (raw_data['1']['G']['Scale'], raw_data['2']['G']['Scale'])
+        self.S_forecast = (raw_data['1']['S']['Prob'], raw_data['2']['S']['Prob'])
 
     def update(self):
-        raw_data = get_json(directory)
-        R = int(raw_data['0']['R']['Scale'])
-        G = int(raw_data['0']['G']['Scale'])
-        S = int(raw_data['0']['S']['Scale'])
-        R_forecast = ({'Minor_p': raw_data['1']['R']['MinorProb'], 'Major_p': raw_data['1']['R']['MajorProb']},
-                      {'Minor_p': raw_data['2']['R']['MinorProb'], 'Major_p': raw_data['2']['R']['MajorProb']})
-        G_forecast = (raw_data['1']['G']['Scale'], raw_data['2']['G']['Scale'])
-        S_forecast = (raw_data['1']['S']['Prob'], raw_data['2']['S']['Prob'])
+        raw_data = get_json(self.directory)
+        self.R = int(raw_data['0']['R']['Scale'])
+        self.G = int(raw_data['0']['G']['Scale'])
+        self.S = int(raw_data['0']['S']['Scale'])
+        self.R_forecast = ({'Minor_p': int(raw_data['1']['R']['MinorProb']),
+                            'Major_p': int(raw_data['1']['R']['MajorProb'])
+                            },
+                           {'Minor_p': int(raw_data['2']['R']['MinorProb']),
+                            'Major_p': int(raw_data['2']['R']['MajorProb'])
+                            }
+                           )
+        self.G_forecast = (raw_data['1']['G']['Scale'], raw_data['2']['G']['Scale'])
+        self.S_forecast = (raw_data['1']['S']['Prob'], raw_data['2']['S']['Prob'])
+
+    def __str__(self):
+        rtn = "-------------\nToday\n"
+        rtn += f"R = {self.R}\n"
+        rtn += f"R = {self.G}\n"
+        rtn += f"S = {self.S}\n"
+        rtn += "-------------\nJ + 1\n"
+        rtn += f"R1 - R2 probability = {self.R_forecast[0]['Minor_p']}\n"
+        rtn += f"R1 - R2 probability = {self.R_forecast[0]['Major_p']}\n"
+        rtn += f"G = {self.G_forecast[0]}\n"
+        rtn += f"S1-S5 probability = {self.S_forecast[0]}\n"
+        rtn += "-------------\nJ + 2\n"
+        rtn += f"R1 - R2 probability = {self.R_forecast[1]['Minor_p']}\n"
+        rtn += f"R1 - R2 probability = {self.R_forecast[1]['Major_p']}\n"
+        rtn += f"G = {self.G_forecast[1]}\n"
+        rtn += f"S1-S5 probability = {self.S_forecast[1]}\n"
+        return rtn
 
 
 def calculate_indices(noaa_scales):
     R = {0: 0, 1: 0, 2: 0}
     G = {0: 0, 1: 0, 2: 0}
     S = {0: 0, 1: 0, 2: 0}
-    SO = {0: 0, 1: 0, 2: 0}
-    R[0] = int(noaa_scales['0']['R']['Scale'])
-    G[0] = int(noaa_scales['0']['G']['Scale'])
-    S[0] = int(noaa_scales['0']['S']['Scale'])
-    for i in (1, 2):
-        R[i] = int((2*1.5*int(noaa_scales[str(i)]['R']['MinorProb']) + 3*4*int(noaa_scales[str(i)]['R']['MajorProb']))/600)
-        G[i] = int(noaa_scales[str(i)]['G']['Scale'])
-        S[i] = int(int(noaa_scales[str(i)]['S']['Prob'])*5*3/100)
+    P = {0: 0, 1: 0, 2: 0}
+    R[0] = noaa_scales.R
+    G[0] = noaa_scales.G
+    S[0] = noaa_scales.S
+    for i in (0, 1):
+        R[i] = int((2 * 1.5 * noaa_scales.R_forecast[i]['Minor_p'] + 3 * 4 * noaa_scales.R_forecast[i]['Major_p'])
+                   /
+                   600)
+        G[i] = int(noaa_scales.G_forecast[i])
+        S[i] = int(int(noaa_scales.S_forecast[i])*5*3/100)
     for i in range(3):
-        SO[i] = int(((G[i]/5)**2 + (S[i]/5)**2)*6/2)
-    return {'R': R, 'SO': SO}
+        P[i] = int(((G[i]/5)**2 + (S[i]/5)**2)*6/2)
+    return {'R': R, 'P': P}
 
 
 if __name__ == '__main__':
     directory = "/products/noaa-scales.json"
-    curr_noaa_scales = get_json(directory)
-    print_raw_indices(curr_noaa_scales)
+    curr_noaa_scales = NoaaScales()
+    print(curr_noaa_scales)
+    print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
 
