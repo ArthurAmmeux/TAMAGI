@@ -12,6 +12,7 @@ SC = {0: 0, 1: 0, 2: 0}
 N = {0: 0, 1: 0, 2: 0}
 
 
+# Change back-end indices values
 def refresh_states():
     noaa_scales = get_noaa.NoaaScales()
     global R, P, SC, N
@@ -19,10 +20,12 @@ def refresh_states():
     R, P = noaa_indices["R"], noaa_indices["P"]
     change_index("R", R[0])
     change_index("P", P[0])
+    change_index("SC", SC[0])
+    change_index("N", N[0])
     # TODO initialize SC and N
 
 
-# Refresh all indices values
+# Refresh all shown indices values
 def refresh(widget, event, data):
     refresh_btn.loading = True
     refresh_states()
@@ -30,8 +33,13 @@ def refresh(widget, event, data):
     change_index("P", P[0])
     change_index("SC", SC[0])
     change_index("N", N[0])
-    # TODO Replace by actual refresh functions
+    # TODO Refresh in function of predicted values
     refresh_btn.loading = False
+
+
+# Show bulletin
+def bulletin_click(widget, event, data):
+    bulletin_dialog.v_model = True
 
 
 # Show sources
@@ -148,6 +156,13 @@ tool_refresh = v.Tooltip(bottom=True, v_slots=[{
     'children': refresh_btn,
 }], children=["Refresh"])
 
+# Bulletin button
+
+bulletin_btn = v.Btn(children=[v.Icon(children=["mdi-clipboard-text"])], height=40, rounded=True, class_="mx-5")
+
+bulletin_btn.on_event('click', bulletin_click)
+
+
 # Sources button
 
 sources_btn = v.Btn(children=["Sources"], width=80, height=60, color="grey lighten-2", class_="mx-5")
@@ -155,9 +170,15 @@ sources_btn.on_event('click', sources_click)
 
 # Sunspot number
 
-sunspot_img = v.Card(children=[], img="sunspot.jpg", width=700, height=400)
+sunspot_img = v.Card(children=[], img="sunspot.jpg", width=800, height=350)
 
 # Dialog boxes
+
+bulletin_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Space weather bulletin"]),
+                                                     v.CardText(children=["Current space weather bulletin: \n"
+                                                     "https://www.swpc.noaa.gov/products/3-day-forecast"])],
+                          )], width=500, height=400)
+bulletin_dialog.v_model = False
 
 sources_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Sources"]),
                                                      v.CardText(children=["Sources are:\n"
@@ -165,15 +186,16 @@ sources_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Sour
                                                      "http://www.eswua.ingv.it/\n"
                                                      "https://impc.dlr.de/\n"
                                                      "https://ionospheric-prediction.jrc.ec.europa.eu/"])],
-                          )],width=500, height=400)
+                          )], width=500, height=400)
 sources_dialog.v_model = False
 
 # Main rows
 
-upper_row = v.Row(children=[tool_refresh, prediction_col], class_="mx-2")
+upper_row = v.Row(children=[tool_refresh, prediction_col, v.Spacer(),bulletin_dialog, bulletin_btn], class_="mx-2")
 middle_row = v.Row(children=[indices_row], class_="my-6")
-lower_row = v.Row(children=[sources_btn, sources_dialog, sunspot_img], class_="d-flex align-end justify-space-between my-6")
+lower_row = v.Row(children=[sources_btn, sources_dialog, v.Spacer(), sunspot_img],
+                  class_="d-flex align-end justify-space-between my-6 mx-4")
 
 # Main widget
 
-main = v.Card(children=[title, upper_row, middle_row, lower_row], img="background.jpg", height=800)
+main = v.Card(children=[title, upper_row, middle_row, lower_row], img="background.jpg", height=700)
