@@ -1,5 +1,5 @@
 import requests
-import shutil # save img locally
+import shutil  # save img locally
 
 base_url = "https://sdo.gsfc.nasa.gov"
 sun_file_name = "sun_last_img.jpg"
@@ -13,7 +13,7 @@ def get_img(directory):
     if status == 200:
         with open(sun_file_name, 'wb') as f:
             shutil.copyfileobj(r.raw, f)
-        print('Image sucessfully Downloaded: ', sun_file_name)
+        print('Image successfully Downloaded: ', sun_file_name)
     else:
         print('Image Couldn\'t be retrieved')
 

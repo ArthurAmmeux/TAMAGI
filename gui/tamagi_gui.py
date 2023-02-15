@@ -2,6 +2,7 @@ import time
 import ipyvuetify as v
 # Our packages
 import get_noaa
+import get_sun_data as gsd
 
 
 # ---------- GUI Functions ----------
@@ -34,6 +35,7 @@ def refresh(widget, event, data):
     change_index("SC", SC[0])
     change_index("N", N[0])
     # TODO Refresh in function of predicted values
+    gsd.get_sun_img()
     refresh_btn.loading = False
 
 
