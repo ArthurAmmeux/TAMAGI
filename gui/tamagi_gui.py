@@ -1,9 +1,11 @@
 import time
+import importlib
 import ipyvuetify as v
 # Our packages
 import get_noaa
 import get_sun_data as gsd
-
+import ipywidgets as widgets
+importlib.reload(get_noaa)
 
 # ---------- GUI Functions ----------
 
@@ -328,11 +330,10 @@ sun_img = v.Card(children=[], img="sun_last_img.jpg", width=350, height=350)
 sunspot_img = v.Card(children=[], img="sunspot.jpg", width=800, height=350)
 
 # Dialog boxes
-
+                      
 bulletin_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Space weather bulletin"]),
-                                                     v.CardText(children=["Current space weather bulletin: \n"
-                                                     "https://www.swpc.noaa.gov/products/3-day-forecast"])],
-                          )], width=500, height=400)
+                                     widgets.HTML((get_noaa.get_bulletin()))]
+                          )], width=600, height=400)
 bulletin_dialog.v_model = False
 
 sources_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Sources"]),
