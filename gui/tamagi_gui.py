@@ -1,11 +1,35 @@
-import time
-import importlib
+# Foreign packages
 import ipyvuetify as v
+import ipywidgets as widgets
+from datetime import datetime
+import os
+import glob
+
 # Our packages
 import get_noaa
 import get_sun_data as gsd
-import ipywidgets as widgets
-importlib.reload(get_noaa)
+
+# ---------- Tool Functions ----------
+
+
+def get_index():
+    return str(datetime.now()).replace(":", "_").replace(" ", "_").replace(".", "_", 1)
+
+
+def delete_sun_img(cur_index):
+    for filename in glob.glob("./sun_last_img_*"):
+        if filename != ".\\sun_last_img_" + cur_index + ".jpg":
+            os.remove(filename)
+
+
+def delete_muf_img(cur_index):
+    for filename in glob.glob("./muf_north_pole_*"):
+        if filename != ".\\muf_north_pole_" + cur_index + ".png":
+            os.remove(filename)
+    for filename in glob.glob("./muf_south_pole_*"):
+        if filename != ".\\muf_south_pole_" + cur_index + ".png":
+            os.remove(filename)
+
 
 # ---------- GUI Functions ----------
 
@@ -13,10 +37,12 @@ R = {0: 0, 1: 0, 2: 0}
 P = {0: 0, 1: 0, 2: 0}
 SC = {0: 0, 1: 0, 2: 0}
 N = {0: 0, 1: 0, 2: 0}
+Day = 0  # 0 -> Today, 1 -> J+1, 2 -> J+2
 
 
-# Change back-end indices values
-def refresh_states():
+# Initialize data
+def initialize():
+    prediction_col.v_model = Day
     noaa_scales = get_noaa.NoaaScales()
     global R, P, SC, N
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
@@ -25,19 +51,46 @@ def refresh_states():
     change_index("P", P[0])
     change_index("SC", SC[0])
     change_index("N", N[0])
+    bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
+    index = get_index()
+    gsd.get_sun_img(index)
+    get_noaa.get_muf(index)
+    sun_img.img = "sun_last_img_" + index + ".jpg"
+    muf_north_img.img = "muf_north_pole_" + index + ".png"
+    muf_south_img.img = "muf_south_pole_" + index + ".png"
+    delete_sun_img(index)
+    delete_muf_img(index)
     # TODO initialize SC and N
 
 
 # Refresh all shown indices values
 def refresh(widget, event, data):
     refresh_btn.loading = True
-    refresh_states()
-    change_index("R", R[0])
-    change_index("P", P[0])
-    change_index("SC", SC[0])
-    change_index("N", N[0])
-    # TODO Refresh in function of predicted values
-    gsd.get_sun_img()
+    today_btn.disabled = True
+    j1_btn.disabled = True
+    j2_btn.disabled = True
+    if type(prediction_col.v_model) is int:
+        change_index("R", R[prediction_col.v_model])
+        change_index("P", P[prediction_col.v_model])
+        change_index("SC", SC[prediction_col.v_model])
+        change_index("N", N[prediction_col.v_model])
+    else:
+        change_index("R", R[0])
+        change_index("P", P[0])
+        change_index("SC", SC[0])
+        change_index("N", N[0])
+    bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
+    index = get_index()
+    gsd.get_sun_img(index)
+    get_noaa.get_muf(index)
+    sun_img.img = "sun_last_img_" + index + ".jpg"
+    muf_north_img.img = "muf_north_pole_" + index + ".png"
+    muf_south_img.img = "muf_south_pole_" + index + ".png"
+    delete_sun_img(index)
+    delete_muf_img(index)
+    today_btn.disabled = False
+    j1_btn.disabled = False
+    j2_btn.disabled = False
     refresh_btn.loading = False
 
 
@@ -95,27 +148,15 @@ def sources_click(widget, event, data):
 
 # Switch between current and predicted index values
 def prediction_click(widget, event, data):
-    if data == 0:
-        # TODAY
-        change_index("R", 0)
-        change_index("P", 1)
-        change_index("SC", 2)
-        change_index("N", 3)
-        # TODO actually change to today's data
-    elif data == 1:
-        # J + 1
-        change_index("R", 4)
-        change_index("P", 5)
-        change_index("SC", 0)
-        change_index("N", 1)
-        # TODO actually change to J+1 data
+    global Day
+    if type(prediction_col.v_model) is int:
+        Day = prediction_col.v_model
     else:
-        # J + 2
-        change_index("R", 2)
-        change_index("P", 3)
-        change_index("SC", 4)
-        change_index("N", 5)
-        # TODO actually change to J+2 data
+        prediction_col.v_model = Day
+    change_index("R", R[Day])
+    change_index("P", P[Day])
+    change_index("SC", SC[Day])
+    change_index("N", N[Day])
 
 
 # Change index to new index value
@@ -158,8 +199,8 @@ title = v.CardTitle(class_="d-flex align-start m-2 title font-weight-medium whit
 
 # --- Data pages ---
 # HF Radio page
-muf_north_img = v.Card(children=[], img="muf_north_pole.png", width=675, height=595, class_="my-2 mx-2")
-muf_south_img = v.Card(children=[], img="muf_south_pole.png", width=675, height=595, class_="my-2 mx-2")
+muf_north_img = v.Card(children=[], width=675, height=595, class_="my-2 mx-2")
+muf_south_img = v.Card(children=[], width=675, height=595, class_="my-2 mx-2")
 
 hf_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["HF Radio"]),
                                               v.CardText(children=["Maximum usable frequency (MUF):\n"
@@ -205,12 +246,67 @@ gnss_page.v_model = False
 # --- Info pages ---
 # Info HF Radio page
 hf_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["R index info"]),
-                                              v.CardText(children=["R0:\n"
-                                                                   ]
+            widgets.HTML("""<table style="border:1px solid black">
+              <colgroup>
+                <col width="5%">
+                <col width="7%">
+                <col width="65%">
+                <col width="8%">
+                <col width="15%">  </colgroup>
+              <tbody><tr>
+                <th><strong>Scale</strong></th>
+                <th><strong>Description</strong></th>
+                <th><strong>Effect</strong></th>
+                <th><strong>Physical measure</strong></th>
+                <th><strong>Average Frequency</strong><br>
+                        (1 cycle = 11 years)</th>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_5 numeric_scale">R 5</td>
+                <td class="scale_description">Extreme</td>
+                <td><p><b>HF Radio:</b> Complete HF (high frequency) radio blackout on the entire sunlit side of the Earth lasting for a number of hours. This results in no HF radio contact with mariners and en route aviators in this sector.</p>
+                  <p><b>Navigation:</b> Low-frequency navigation signals used by maritime and general aviation systems experience outages on the sunlit side of the Earth for many hours, causing loss in positioning. Increased satellite navigation errors in positioning for several hours on the sunlit side of Earth, which may spread into the night side.</p></td>
+                <td>X20<br> (2 x 10<sup>-3</sup>)</td>
+                <td>Less than 1 per cycle</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_4 numeric_scale">R 4</td>
+                <td class="scale_description">Severe</td>
+                <td><p><b>HF Radio:</b> HF radio communication blackout on most of the sunlit side of Earth for one to two hours. HF radio contact lost during this time.</p>
+                  <p><b>Navigation:</b> Outages of low-frequency navigation signals cause increased error in positioning for one to two hours. Minor disruptions of satellite navigation possible on the sunlit side of Earth.</p></td>
+                <td>X10<br> (10<sup>-3</sup>)</td>
+                <td>8 per cycle<br> (8 days per cycle)</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_3 numeric_scale">R 3</td>
+                <td class="scale_description">Strong</td>
+                <td><p><b>HF Radio:</b> Wide area blackout of HF radio communication, loss of radio contact for about an hour on sunlit side of Earth.</p>
+                  <p><b>Navigation:</b> Low-frequency navigation signals degraded for about an hour.</p></td>
+                <td>X1<br> (10<sup>-4</sup>) </td>
+                <td>175 per cycle<br> (140 days per cycle)</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_2 numeric_scale">R 2</td>
+                <td class="scale_description">Moderate</td>
+                <td><p><b>HF Radio:</b> Limited blackout of HF radio communication on sunlit side, loss of radio contact for tens of minutes.</p>
+                  <p><b>Navigation:</b> Degradation of low-frequency navigation signals for tens of minutes.</p></td>
+                <td>M5<br> (5 x 10<sup>-5</sup>)</td>
+                <td>350 per cycle<br> (300 days per cycle)</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_1 numeric_scale">R 1</td>
+                <td class="scale_description">Minor</td>
+                <td>
+                  <p><b>HF Radio:</b> Weak or minor degradation of HF radio communication on sunlit side, occasional loss of radio contact.</p>
+                  <p><b>Navigation:</b> Low-frequency navigation signals degraded for brief intervals.</p></td>
+                <td>M1<br> (10<sup>-5</sup>)</td>
+                <td>2000 per cycle<br> (950 days per cycle)</td>
+              </tr>
+            </tbody></table>"""
                                                          )
                                               ],
                                     )
-                             ], width=600, height=400)
+                             ], width=1000, height=600)
 hf_info_page.v_model = False
 
 # Info Space Operations page
@@ -296,7 +392,6 @@ prediction_col = v.BtnToggle(v_model="toggle_exclusive", children=[today_btn, j1
 prediction_col.on_event('change', prediction_click)
 
 # Refresh button
-
 refresh_btn = v.Btn(children=[v.Icon(children=["mdi-refresh"])], v_on="tooltip.on", height=40, rounded=True,
                     class_="mx-2")
 
@@ -309,49 +404,44 @@ tool_refresh = v.Tooltip(bottom=True, v_slots=[{
 }], children=["Refresh"])
 
 # Bulletin button
-
 bulletin_btn = v.Btn(children=[v.Icon(children=["mdi-clipboard-text"])], height=40, rounded=True, class_="mx-5")
 
 bulletin_btn.on_event('click', bulletin_click)
 
 
 # Sources button
-
 sources_btn = v.Btn(children=["Sources"], width=80, height=60, color="grey lighten-2", class_="mx-5")
 sources_btn.on_event('click', sources_click)
 
 
 # Last sun image (171 Angstrom)
-
-sun_img = v.Card(children=[], img="sun_last_img.jpg", width=350, height=350)
+sun_img = v.Card(children=[], width=350, height=350)
 
 # Sunspot number
-
 sunspot_img = v.Card(children=[], img="sunspot.jpg", width=800, height=350)
 
 # Dialog boxes
-                      
 bulletin_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Space weather bulletin"]),
-                                     widgets.HTML((get_noaa.get_bulletin()))]
-                          )], width=600, height=400)
+                                     widgets.HTML(layout=widgets.Layout(margin='0px 20px 0px 20px'))])
+                                     ], width=700, height=500)
 bulletin_dialog.v_model = False
 
 sources_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Sources"]),
-                                                     v.CardText(children=["Sources are:\n"
-                                                     "https://www.swpc.noaa.gov/\n"
-                                                     "http://www.eswua.ingv.it/\n"
-                                                     "https://impc.dlr.de/\n"
-                                                     "https://ionospheric-prediction.jrc.ec.europa.eu/"])],
-                          )], width=500, height=400)
+                                                     v.CardText(children=[widgets.HTML(value='Sources are:<br>'
+                                                     '<a href="https://www.swpc.noaa.gov/">www.swpc.noaa.gov</a><br>'
+                                                     '<a href="http://www.eswua.ingv.it/">www.eswua.ingv.it</a><br>'
+                                                     '<a href="https://impc.dlr.de/">impc.dlr.de</a><br>'
+                                                     '<a href="https://ionospheric-prediction.jrc.ec.europa.eu/">'
+                                                     'ionospheric-prediction.jrc.ec.europa.eu</a><br>')])
+                                                     ],
+                                           )], width=500, height=400)
 sources_dialog.v_model = False
 
 # Main rows
-
-upper_row = v.Row(children=[tool_refresh, prediction_col, v.Spacer(),bulletin_dialog, bulletin_btn], class_="mx-2")
+upper_row = v.Row(children=[tool_refresh, prediction_col, v.Spacer(), bulletin_dialog, bulletin_btn], class_="mx-2")
 middle_row = v.Row(children=[indices_row], class_="my-6")
 lower_row = v.Row(children=[sources_btn, sources_dialog, sun_img, sunspot_img],
                   class_="d-flex align-end justify-space-between my-6 mx-4")
 
 # Main widget
-
 main = v.Card(children=[title, upper_row, middle_row, lower_row], img="background.jpg", height=750)

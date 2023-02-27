@@ -23,7 +23,6 @@ def get_img(directory, file_name):
     if status == 200:
         with open(file_name, 'wb') as f:
             shutil.copyfileobj(r.raw, f)
-        print('Image sucessfully Downloaded: ', file_name)
     else:
         print('Image Couldn\'t be retrieved')
 
@@ -64,8 +63,8 @@ class NoaaScales:
                             'Major_p': int(raw_data['2']['R']['MajorProb'])
                             }
                            )
-        self.G_forecast = (raw_data['1']['G']['Scale'], raw_data['2']['G']['Scale'])
-        self.S_forecast = (raw_data['1']['S']['Prob'], raw_data['2']['S']['Prob'])
+        self.G_forecast = (int(raw_data['1']['G']['Scale']), int(raw_data['2']['G']['Scale']))
+        self.S_forecast = (int(raw_data['1']['S']['Prob']), int(raw_data['2']['S']['Prob']))
 
     def update(self):
         raw_data = get_json(self.directory)
@@ -79,8 +78,8 @@ class NoaaScales:
                             'Major_p': int(raw_data['2']['R']['MajorProb'])
                             }
                            )
-        self.G_forecast = (raw_data['1']['G']['Scale'], raw_data['2']['G']['Scale'])
-        self.S_forecast = (raw_data['1']['S']['Prob'], raw_data['2']['S']['Prob'])
+        self.G_forecast = (int(raw_data['1']['G']['Scale']), int(raw_data['2']['G']['Scale']))
+        self.S_forecast = (int(raw_data['1']['S']['Prob']), int(raw_data['2']['S']['Prob']))
 
     def __str__(self):
         rtn = "-------------\nToday\n"
@@ -109,42 +108,40 @@ def calculate_indices(noaa_scales):
     G[0] = noaa_scales.G
     S[0] = noaa_scales.S
     for i in (0, 1):
-        R[i] = int((2 * 1.5 * noaa_scales.R_forecast[i]['Minor_p'] + 3 * 4 * noaa_scales.R_forecast[i]['Major_p'])
-                   /
-                   600)
-        G[i] = int(noaa_scales.G_forecast[i])
-        S[i] = int(int(noaa_scales.S_forecast[i])*5*3/100)
+        R[i+1] = round((2 * noaa_scales.R_forecast[i]['Minor_p'] + 5 * noaa_scales.R_forecast[i]['Major_p'])
+                     /
+                     100)
+        G[i+1] = noaa_scales.G_forecast[i]
+        S[i+1] = round(noaa_scales.S_forecast[i]*5/100)
     for i in range(3):
-        P[i] = int(((G[i]/5)**2 + (S[i]/5)**2)*6/2)
+        P[i] = round(((G[i]/5)**2 + (S[i]/5)**2)*5/2)
     return {'R': R, 'P': P}
 
 
-def get_bulletin():
-    f=urllib.request.urlopen("https://services.swpc.noaa.gov/text/3-day-forecast.txt") #Read the NOOA official bulletin
-    R, P = [1,1,1],[2,2,2]
-    SC, N = [3,3,3],[4,4,4] ##WARNING change this value by the real value when N and SC will be computed 
-    lines=[f.readline().decode('utf-8'),f.readline().decode('utf-8')]
-    month=lines[1][14:18]
-    day=int(lines[1][18:20])
+def get_bulletin(r, p, sc, n):
+    f = urllib.request.urlopen("https://services.swpc.noaa.gov/text/3-day-forecast.txt") #Read the NOOA official bulletin
+    lines = [f.readline().decode('utf-8'), f.readline().decode('utf-8')]
+    month = lines[1][14:18]
+    day = int(lines[1][18:20])
 
-    content=lines+["<br>TAMAGI Index Forecast :"] #will be the content of the forecast file
+    content = lines+["<br>TAMAGI Index Forecast :"]  # will be the content of the forecast file
     content.append("<br>&emsp;&emsp;&ensp; "+month+str(day)+"&emsp; "+month+str(day+1)+"&emsp; "+month+str(day+2))
-    content.append("<br>R index"+"&emsp; "+str(R[0])+"&emsp;&emsp;&emsp; "+str(R[1])+"&emsp;&emsp;&emsp; "+str(R[2]))
-    content.append("<br>P index"+"&emsp; "+str(P[0])+"&emsp;&emsp;&emsp; "+str(P[1])+"&emsp;&emsp;&emsp; "+str(P[2]))
-    content.append("<br>SC index"+"&ensp; "+str(SC[0])+"&emsp;&emsp;&emsp; "+str(SC[1])+"&emsp;&emsp;&emsp; "+str(SC[2]))
-    content.append("<br>N index"+"&emsp; "+str(N[0])+"&emsp;&emsp;&emsp; "+str(N[1])+"&emsp;&emsp;&emsp; "+str(N[2]))
+    content.append("<br>R index"+"&emsp; "+str(r[0])+"&emsp;&emsp;&emsp; "+str(r[1])+"&emsp;&emsp;&emsp; "+str(r[2]))
+    content.append("<br>P index"+"&emsp; "+str(p[0])+"&emsp;&emsp;&emsp; "+str(p[1])+"&emsp;&emsp;&emsp; "+str(p[2]))
+    content.append("<br>SC index"+"&ensp; "+str(sc[0])+"&emsp;&emsp;&emsp; "+str(sc[1])+"&emsp;&emsp;&emsp; "+str(sc[2]))
+    content.append("<br>N index"+"&emsp; "+str(n[0])+"&emsp;&emsp;&emsp; "+str(n[1])+"&emsp;&emsp;&emsp; "+str(n[2]))
     content.append("<br>NOOA Bulletin :\n")
-    for i,line in enumerate(f) :
+    for i, line in enumerate(f):
         content.append("<br>"+line.decode('utf-8'))
     
     return ''.join(content)
 
 
-def get_muf():
+def get_muf(index):
     directory_north = "/images/animations/d-rap/north-pole/d-rap/latest.png"
     directory_south = "/images/animations/d-rap/south-pole/d-rap/latest.png"
-    get_img(directory_north, "muf_north_pole.png")
-    get_img(directory_south, "muf_south_pole.png")
+    get_img(directory_north, f"muf_north_pole_{index}.png")
+    get_img(directory_south, f"muf_south_pole_{index}.png")
 
 
 if __name__ == '__main__':
