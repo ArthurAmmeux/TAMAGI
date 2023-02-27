@@ -1,6 +1,7 @@
 import requests
 import shutil
-import urllib.request 
+import urllib.request
+import pandas as pd
 
 base_url = "https://services.swpc.noaa.gov"
 
@@ -144,6 +145,14 @@ def get_muf(index):
     get_img(directory_south, f"muf_south_pole_{index}.png")
 
 
+def get_sunspot():
+    directory = "/json/solar-cycle/sunspots.json"
+    ssn = get_json(directory)
+    last_ssn = ssn[-120:]
+    ssn_data = pd.DataFrame(last_ssn)
+    return ssn_data
+
+
 if __name__ == '__main__':
     """
     directory = "/products/noaa-scales.json"
@@ -152,4 +161,4 @@ if __name__ == '__main__':
     print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
     """
-    get_muf()
+    print(get_sunspot())

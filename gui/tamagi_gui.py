@@ -4,6 +4,8 @@ import ipywidgets as widgets
 from datetime import datetime
 import os
 import glob
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Our packages
 import get_noaa
@@ -52,6 +54,15 @@ def initialize():
     change_index("SC", SC[0])
     change_index("N", N[0])
     bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
+    ssn_data = get_noaa.get_sunspot()
+    with sunspot_img:
+        sns.set(rc={'figure.figsize': (7.5, 3.5)})
+        sns.set_style('darkgrid')
+        sns.lineplot(x='time-tag', y='ssn', data=ssn_data)
+        plt.xlabel("Date")
+        plt.ylabel("Monthly average sunspot number")
+        plt.xticks([12*i for i in range(11)])
+        plt.show()
     index = get_index()
     gsd.get_sun_img(index)
     get_noaa.get_muf(index)
@@ -302,8 +313,8 @@ hf_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["R inde
                 <td>M1<br> (10<sup>-5</sup>)</td>
                 <td>2000 per cycle<br> (950 days per cycle)</td>
               </tr>
-            </tbody></table>"""
-                                                         )
+             </tbody></table>""",
+             layout=widgets.Layout(margin='0px 20px 0px 20px'))
                                               ],
                                     )
                              ], width=1000, height=600)
@@ -418,7 +429,7 @@ sources_btn.on_event('click', sources_click)
 sun_img = v.Card(children=[], width=350, height=350)
 
 # Sunspot number
-sunspot_img = v.Card(children=[], img="sunspot.jpg", width=800, height=350)
+sunspot_img = widgets.Output()  # v.Card(children=[], img="sunspot.jpg", width=800, height=350)
 
 # Dialog boxes
 bulletin_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Space weather bulletin"]),
