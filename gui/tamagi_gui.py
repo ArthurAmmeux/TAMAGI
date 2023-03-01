@@ -56,9 +56,9 @@ def initialize():
     bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
     ssn_data = get_noaa.get_sunspot()
     with sunspot_img:
-        sns.set(rc={'figure.figsize': (7.5, 3.5)})
+        sns.set(rc={'figure.figsize': (9, 3.3)})
         sns.set_style('darkgrid')
-        sns.lineplot(x='time-tag', y='ssn', data=ssn_data)
+        sns.lineplot(x='time-tag', y='ssn', data=ssn_data).set(title="Sunspot number (indicator of solar cycle)")
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12*i for i in range(11)])

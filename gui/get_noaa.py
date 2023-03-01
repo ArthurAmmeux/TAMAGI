@@ -2,6 +2,7 @@ import requests
 import shutil
 import urllib.request
 import pandas as pd
+import matplotlib.pyplot as plt
 
 base_url = "https://services.swpc.noaa.gov"
 
@@ -153,6 +154,16 @@ def get_sunspot():
     return ssn_data
 
 
+def get_goes_proton():
+    directory = "/json/goes/primary/integral-protons-3-day.json"
+    goes_proton = get_json(directory)
+    gp10mev = [{"time": gp["time_tag"], "10 Mev part. flux": gp["flux"]} for gp in goes_proton
+               if gp["energy"] == ">=10 MeV"]
+    gp10mev_data = pd.DataFrame(gp10mev)
+    gp10mev_data.plot(x="time", y="10 Mev part. flux")
+    plt.show()
+
+
 if __name__ == '__main__':
     """
     directory = "/products/noaa-scales.json"
@@ -161,4 +172,4 @@ if __name__ == '__main__':
     print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
     """
-    print(get_sunspot())
+    print(get_goes_proton())
