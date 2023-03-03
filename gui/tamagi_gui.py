@@ -322,22 +322,74 @@ hf_info_page.v_model = False
 
 # Info Space Operations page
 space_op_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["P index info"]),
-                                                    v.CardText(children=["P0:\n"
-                                                                         ]
-                                                               )
+    widgets.HTML("""<table style="border:1px solid black">
+              <colgroup>
+                <col width="7%">
+                <col width="9%">
+                <col width="67%">
+                <col width="17%">  </colgroup>
+              <tbody><tr>
+                <th><strong>Scale</strong></th>
+                <th><strong>Description</strong></th>
+                <th><strong>Effect</strong></th>
+                <th><strong>Average Frequency</strong><br>
+                        (1 cycle = 11 years)</th>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_5 numeric_scale">P 5</td>
+                <td class="scale_description">Extreme</td>
+                <td><p><b>Space Operation:</b> Satellites may be rendered useless, memory impacts can cause loss of 
+                control, may cause serious noise in image data, star-trackers may be unable to locate sources; 
+                permanent damage to solar panels possible. Extensive surface charging likely as well as uplink/downlink
+                problems.</p>
+                <td>4 days per cycle</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_4 numeric_scale">P 4</td>
+                <td class="scale_description">Severe</td>
+                <td><p><b>Space Operation:</b>May experience surface charging, memory device problems and noise on 
+                imaging systems; star-tracker problems may cause orientation problems and require corrections, and 
+                solar panel efficiency can be degraded</p>
+                <td>100 per cycle<br> (8 days per cycle)</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_3 numeric_scale">P 3</td>
+                <td class="scale_description">Strong</td>
+                <td><p><b>Space Operation:</b>Surface charging may occur on satellite components, drag may increase on 
+                low-Earth-orbit satellites, and corrections may be needed for orientation problems. Single-event upsets,
+                 noise in imaging systems, and slight reduction of efficiency in solar panel are likely.</p>
+                <td>200 per cycle<br> (140 days per cycle)</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_2 numeric_scale">P 2</td>
+                <td class="scale_description">Moderate</td>
+                <td><p><b>Space Operation:</b>Corrective actions to orientation may be required by ground control; 
+                possible changes in drag affect orbit predictions. Infrequent single-event upsets possible.</p>
+                <td>600 per cycle<br> (300 days per cycle)</td>
+              </tr>
+              <tr>
+                <td class="noaa_scale_bg_1 numeric_scale">P 1</td>
+                <td class="scale_description">Minor</td>
+                <td>
+                  <p><b>Space Operation:</b>Minor impact on satellite operations possible.</p>
+                <td>1700 per cycle<br> (900 days per cycle)</td>
+              </tr>
+             </tbody></table>""",
+             layout=widgets.Layout(margin='0px 20px 0px 20px'))
+
                                                     ],
                                           )
-                                   ], width=600, height=400)
+                                   ], width=1000, height=600)
 space_op_info_page.v_model = False
 
 # Info Satellite Communications page
-satcom_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["SC info"]),
+satcom_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["SC index info"]),
                                                   v.CardText(children=["SC0:\n"
                                                                        ]
                                                              )
                                                   ],
                                         )
-                                 ], width=600, height=400)
+                                 ], width=1000, height=600)
 satcom_info_page.v_model = False
 
 # Info GNSS page
@@ -347,7 +399,7 @@ gnss_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["N in
                                                            )
                                                 ],
                                       )
-                               ], width=600, height=400)
+                               ], width=1000, height=600)
 gnss_info_page.v_model = False
 
 # Indices
