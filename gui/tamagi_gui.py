@@ -6,13 +6,16 @@ import os
 import glob
 import matplotlib.pyplot as plt
 import seaborn as sns
+import cv2
 
 # Our packages
+import get_gnss
 import get_noaa
 import get_sun_data as gsd
+import get_gnss as gnss
+
 
 # ---------- Tool Functions ----------
-
 
 def get_index():
     return str(datetime.now()).replace(":", "_").replace(" ", "_").replace(".", "_", 1)
@@ -46,23 +49,53 @@ Day = 0  # 0 -> Today, 1 -> J+1, 2 -> J+2
 def initialize():
     prediction_col.v_model = Day
     noaa_scales = get_noaa.NoaaScales()
+    # Get indices values
     global R, P, SC, N
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
+    N = gnss.get_GNSS_index()
+    # Show indices values
     change_index("R", R[0])
     change_index("P", P[0])
     change_index("SC", SC[0])
     change_index("N", N[0])
+    # Get Last Bulletin
     bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
+    # Get and show sunspots
     ssn_data = get_noaa.get_sunspot()
     with sunspot_img:
-        sns.set(rc={'figure.figsize': (8, 2.7)})
+        sns.set(rc={'axes.facecolor': 'lightblue', 'figure.facecolor': 'lightblue'})
+        sns.set(rc={'figure.figsize': (9, 2.9)})
         sns.set_style('darkgrid')
-        sns.lineplot(data=ssn_data, palette=['b', 'r'], dashes=False).set(title="Sunspot number (indicator of solar cycle)")
+        sns.lineplot(x="time-tag", y="vals", hue="cols", data=ssn_data, palette=['b', 'r'],
+                     dashes=False).set(title="Sunspot number (indicator of solar cycle)")
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12*i for i in range(11)])
         plt.show()
+    # Get and show GNSS map
+    data = 0
+    array2, gnss_title = get_gnss.display_last_data(data, 0)  # data = 0 -> positioning error, 0-> J+0
+    im = cv2.imread("map.jpg")
+    map_ = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+
+    (sz1, sz2) = map_.shape[:2]
+    figsz = 10
+    up_limit = 10*(data == 0) + 100*(data == 1)
+    #
+    # up_limit doit être fixé à 10 pour la carte sur l'erreur de positionnement et à 100 pour la proba de LOL
+
+    with gnss_output:
+        plt.figure(figsize=(figsz, figsz * sz2 / sz1))
+        plt.imshow(map_)
+        plt.imshow(array2, alpha=0.6)
+        plt.clim(0, up_limit)
+        plt.colorbar(fraction=0.019, pad=0.04)
+        plt.xticks([])
+        plt.yticks([])
+        plt.title(gnss_title)
+        plt.show()
+    # Get images
     index = get_index()
     gsd.get_sun_img(index)
     get_noaa.get_muf(index)
@@ -71,7 +104,7 @@ def initialize():
     muf_south_img.img = "muf_south_pole_" + index + ".png"
     delete_sun_img(index)
     delete_muf_img(index)
-    # TODO initialize SC and N
+    # TODO initialize SC
 
 
 # Refresh all shown indices values
@@ -80,6 +113,11 @@ def refresh(widget, event, data):
     today_btn.disabled = True
     j1_btn.disabled = True
     j2_btn.disabled = True
+    global R, P, SC, N
+    noaa_scales = get_noaa.NoaaScales()
+    noaa_indices = get_noaa.calculate_indices(noaa_scales)
+    R, P = noaa_indices["R"], noaa_indices["P"]
+    N = gnss.get_GNSS_index()
     if type(prediction_col.v_model) is int:
         change_index("R", R[prediction_col.v_model])
         change_index("P", P[prediction_col.v_model])
@@ -105,10 +143,15 @@ def refresh(widget, event, data):
     refresh_btn.loading = False
 
 
-# --- Show data pages ---
+# ----- Show and close data pages -----
 # Show HF page
 def r_click(widget, event, data):
     hf_page.v_model = True
+
+
+# Close HF page
+def r_close(widget, event, data):
+    hf_page.v_model = False
 
 
 # Show space operations page
@@ -116,35 +159,70 @@ def p_click(widget, event, data):
     space_op_page.v_model = True
 
 
-# Show HF page
+# Close space operations page
+def p_close(widget, event, data):
+    space_op_page.v_model = False
+
+
+# Show satcom page
 def sc_click(widget, event, data):
     satcom_page.v_model = True
 
 
-# Show HF page
+# Close satcom page
+def sc_close(widget, event, data):
+    satcom_page.v_model = False
+
+
+# Show GNSS page
 def n_click(widget, event, data):
     gnss_page.v_model = True
 
 
-# --- Show info pages ---
-# Show HF page
+# Close GNSS page
+def n_close(widget, event, data):
+    gnss_page.v_model = False
+
+
+# ----- Show and close info pages -----
+# Show HF info page
 def r_info_click(widget, event, data):
     hf_info_page.v_model = True
 
 
-# Show space operations page
+# Close HF info page
+def r_info_close(widget, event, data):
+    hf_info_page.v_model = False
+
+
+# Show space operations' info page
 def p_info_click(widget, event, data):
     space_op_info_page.v_model = True
 
 
-# Show HF page
+# Close space operations' info page
+def p_info_close(widget, event, data):
+    space_op_info_page.v_model = False
+
+
+# Show satcom info page
 def sc_info_click(widget, event, data):
     satcom_info_page.v_model = True
 
 
-# Show HF page
+# Close satcom info page
+def sc_info_close(widget, event, data):
+    satcom_info_page.v_model = False
+
+
+# Show GNSS info page
 def n_info_click(widget, event, data):
     gnss_info_page.v_model = True
+
+
+# Close GNSS info page
+def n_info_close(widget, event, data):
+    gnss_info_page.v_model = False
 
 
 # Show bulletin
@@ -152,9 +230,19 @@ def bulletin_click(widget, event, data):
     bulletin_dialog.v_model = True
 
 
+# Close bulletin
+def bulletin_close(widget, event, data):
+    bulletin_dialog.v_model = False
+
+
 # Show sources
 def sources_click(widget, event, data):
     sources_dialog.v_model = True
+
+
+# Close sources
+def sources_close(widget, event, data):
+    sources_dialog.v_model = False
 
 
 # Switch between current and predicted index values
@@ -204,7 +292,6 @@ def change_index(index, index_value):
 
 # ---------- GUI Widgets ----------
 # Main title
-
 title = v.CardTitle(class_="d-flex align-start m-1 title font-weight-medium white--text",
                     children=["TAMAGI: a space weather tool"])
 
@@ -213,50 +300,56 @@ title = v.CardTitle(class_="d-flex align-start m-1 title font-weight-medium whit
 muf_north_img = v.Card(children=[], width=675, height=595, class_="my-2 mx-2")
 muf_south_img = v.Card(children=[], width=675, height=595, class_="my-2 mx-2")
 
-hf_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["HF Radio"]),
-                                              v.CardText(children=["Maximum usable frequency (MUF):\n"
-                                                                   ]
-                                                         ),
+hf_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+hf_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["HF Radio"]),
+                                                    hf_close_btn], class_="justify-space-between mx-4"),
+                                              v.CardText(children=["Maximum usable frequency (MUF):\n"]),
                                               muf_north_img,
                                               muf_south_img
                                               ],
                                     )
                              ], width=1000, height=1200)
 hf_page.v_model = False
+hf_close_btn.on_event('click', r_close)
 
 # Space Operations page
-space_op_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Space Operations"]),
-                                                    v.CardText(children=["Particle flux:\n"
-                                                                         ]
-                                                               )
+p_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+space_op_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["Space Operations"]),
+                                                          p_close_btn], class_="justify-space-between mx-4"),
+                                                    v.CardText(children=["Particle flux:\n"])
                                                     ],
                                           )
                                    ], width=800, height=400)
 space_op_page.v_model = False
+p_close_btn.on_event('click', p_close)
 
 # Satellite Communications page
-satcom_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Satellite Communications"]),
-                                                  v.CardText(children=["S4 data:\n"
-                                                                       ]
-                                                             )
+sc_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+satcom_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["Satellite Communications"]),
+                                                  sc_close_btn], class_="justify-space-between mx-4"),
+                                                  v.CardText(children=["S4 data:\n"])
                                                   ],
                                         )
                                  ], width=800, height=400)
 satcom_page.v_model = False
+sc_close_btn.on_event('click', sc_close)
 
 # GNSS page
-gnss_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["GNSS"]),
-                                                v.CardText(children=["Map:\n"
-                                                                     ]
-                                                           )
-                                                ],
+n_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+gnss_output = widgets.Output()
+gnss_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["GNSS"]),
+                                                n_close_btn], class_="justify-space-between mx-4"),
+                                                v.Container(children=[gnss_output])],
                                       )
                                ], width=800, height=400)
 gnss_page.v_model = False
+n_close_btn.on_event('click', n_close)
 
 # --- Info pages ---
 # Info HF Radio page
-hf_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["R index info"]),
+hf_info_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+hf_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["R index info"]),
+                                                   hf_info_close_btn], class_="justify-space-between mx-4"),
             widgets.HTML("""<table style="border:1px solid black">
               <colgroup>
                 <col width="5%">
@@ -319,9 +412,12 @@ hf_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["R inde
                                     )
                              ], width=1000, height=600)
 hf_info_page.v_model = False
+hf_info_close_btn.on_event('click', r_info_close)
 
 # Info Space Operations page
-space_op_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["P index info"]),
+p_info_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+space_op_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["P index info"]),
+                                                         p_info_close_btn], class_="justify-space-between mx-4"),
     widgets.HTML("""<table style="border:1px solid black">
               <colgroup>
                 <col width="7%">
@@ -381,26 +477,31 @@ space_op_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["
                                           )
                                    ], width=1000, height=600)
 space_op_info_page.v_model = False
+p_info_close_btn.on_event('click', p_info_close)
 
 # Info Satellite Communications page
-satcom_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["SC index info"]),
-                                                  v.CardText(children=["SC0:\n"
-                                                                       ]
-                                                             )
-                                                  ],
-                                        )
-                                 ], width=1000, height=600)
+sc_info_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+satcom_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["SC index info"]),
+                                                       sc_info_close_btn], class_="justify-space-between mx-4"),
+                                                       v.CardText(children=["SC0:\n"]
+                                                                  )
+                                                       ],
+                                             )
+                                      ], width=1000, height=600)
 satcom_info_page.v_model = False
+sc_info_close_btn.on_event('click', sc_info_close)
 
 # Info GNSS page
-gnss_info_page = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["N index info"]),
-                                                v.CardText(children=["N0:\n"
-                                                                     ]
-                                                           )
-                                                ],
-                                      )
-                               ], width=1000, height=600)
+n_info_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+gnss_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["N index info"]),
+                                                     n_info_close_btn], class_="justify-space-between mx-4"),
+                                                     v.CardText(children=["N0:\n"]
+                                                                )
+                                                     ],
+                                           )
+                                    ], width=1000, height=600)
 gnss_info_page.v_model = False
+n_info_close_btn.on_event('click', n_info_close)
 
 # Indices
 indices_size = 80
@@ -478,18 +579,25 @@ sources_btn.on_event('click', sources_click)
 
 
 # Last sun image (171 Angstrom)
-sun_img = v.Card(children=[], width=300, height=300)
+sun_img = v.Card(children=[], width=320, height=320)
 
 # Sunspot number
-sunspot_img = widgets.Output()  # v.Card(children=[], img="sunspot.jpg", width=800, height=350)
+sunspot_img = widgets.Output()
 
 # Dialog boxes
-bulletin_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Space weather bulletin"]),
+# v.CardTitle(children=["Space weather bulletin"])
+bulletin_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+bulletin_dialog = v.Dialog(children=[v.Card(children=[
+                                    v.Row(children=[v.CardTitle(children=["Space weather bulletin"]),
+                                                    bulletin_close_btn], class_="justify-space-between mx-4"),
                                      widgets.HTML(layout=widgets.Layout(margin='0px 20px 0px 20px'))])
                                      ], width=700, height=500)
 bulletin_dialog.v_model = False
+bulletin_close_btn.on_event("click", bulletin_close)
 
-sources_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Sources"]),
+sources_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+sources_dialog = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["Sources"]),
+                                                     sources_close_btn], class_="justify-space-between mx-4"),
                                                      v.CardText(children=[widgets.HTML(value='Sources are:<br>'
                                                      '<a href="https://www.swpc.noaa.gov/">www.swpc.noaa.gov</a><br>'
                                                      '<a href="http://www.eswua.ingv.it/">www.eswua.ingv.it</a><br>'
@@ -499,12 +607,13 @@ sources_dialog = v.Dialog(children=[v.Card(children=[v.CardTitle(children=["Sour
                                                      ],
                                            )], width=500, height=400)
 sources_dialog.v_model = False
+sources_close_btn.on_event("click", sources_close)
 
 # Main rows
 upper_row = v.Row(children=[tool_refresh, prediction_col, v.Spacer(), bulletin_dialog, bulletin_btn], class_="mx-2")
-middle_row = v.Row(children=[indices_row], class_="my-5")
+middle_row = v.Row(children=[indices_row], class_="my-3")
 lower_row = v.Row(children=[sources_btn, sources_dialog, sun_img, sunspot_img],
-                  class_="d-flex align-end justify-space-between my-6 mx-4")
+                  class_="d-flex align-end justify-space-between my-5 mx-4")
 
 # Main widget
 main = v.Card(children=[title, upper_row, middle_row, lower_row], img="background.jpg", height=690)
