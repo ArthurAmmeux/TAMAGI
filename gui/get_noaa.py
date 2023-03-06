@@ -150,7 +150,18 @@ def get_sunspot():
     directory = "/json/solar-cycle/sunspots.json"
     ssn = get_json(directory)
     last_ssn = ssn[-120:]
+    tendency_ssn = [0]*120
+    tendency_ssn[0] = (last_ssn[0]['ssn'] + last_ssn[1]['ssn'] + last_ssn[2]['ssn']) / 3
+    tendency_ssn[1] = (last_ssn[0]['ssn'] + last_ssn[1]['ssn'] + last_ssn[2]['ssn'] +
+                       last_ssn[3]['ssn']) / 4
+    tendency_ssn[-2] = (last_ssn[-4]['ssn'] + last_ssn[-3]['ssn'] + last_ssn[-2]['ssn'] +
+                        last_ssn[-1]['ssn']) / 4
+    tendency_ssn[-1] = (last_ssn[-3]['ssn'] + last_ssn[-2]['ssn'] + last_ssn[-1]['ssn']) / 3
+    for i in range(2, len(last_ssn) - 2):
+        tendency_ssn[i] = (last_ssn[i - 2]['ssn'] + last_ssn[i - 1]['ssn'] + last_ssn[i]['ssn'] +
+                           last_ssn[i + 1]['ssn'] + last_ssn[i + 2]['ssn']) / 5
     ssn_data = pd.DataFrame(last_ssn)
+    ssn_data['tendency'] = tendency_ssn
     return ssn_data
 
 
@@ -172,4 +183,4 @@ if __name__ == '__main__':
     print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
     """
-    print(get_goes_proton())
+    print(get_sunspot())

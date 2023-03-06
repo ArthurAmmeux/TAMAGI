@@ -56,9 +56,9 @@ def initialize():
     bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
     ssn_data = get_noaa.get_sunspot()
     with sunspot_img:
-        sns.set(rc={'figure.figsize': (9, 3.3)})
+        sns.set(rc={'figure.figsize': (8, 2.7)})
         sns.set_style('darkgrid')
-        sns.lineplot(x='time-tag', y='ssn', data=ssn_data).set(title="Sunspot number (indicator of solar cycle)")
+        sns.lineplot(data=ssn_data, palette=['b', 'r'], dashes=False).set(title="Sunspot number (indicator of solar cycle)")
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12*i for i in range(11)])
@@ -205,7 +205,7 @@ def change_index(index, index_value):
 # ---------- GUI Widgets ----------
 # Main title
 
-title = v.CardTitle(class_="d-flex align-start m-2 title font-weight-medium white--text",
+title = v.CardTitle(class_="d-flex align-start m-1 title font-weight-medium white--text",
                     children=["TAMAGI: a space weather tool"])
 
 # --- Data pages ---
@@ -478,7 +478,7 @@ sources_btn.on_event('click', sources_click)
 
 
 # Last sun image (171 Angstrom)
-sun_img = v.Card(children=[], width=350, height=350)
+sun_img = v.Card(children=[], width=300, height=300)
 
 # Sunspot number
 sunspot_img = widgets.Output()  # v.Card(children=[], img="sunspot.jpg", width=800, height=350)
@@ -502,9 +502,9 @@ sources_dialog.v_model = False
 
 # Main rows
 upper_row = v.Row(children=[tool_refresh, prediction_col, v.Spacer(), bulletin_dialog, bulletin_btn], class_="mx-2")
-middle_row = v.Row(children=[indices_row], class_="my-6")
+middle_row = v.Row(children=[indices_row], class_="my-5")
 lower_row = v.Row(children=[sources_btn, sources_dialog, sun_img, sunspot_img],
                   class_="d-flex align-end justify-space-between my-6 mx-4")
 
 # Main widget
-main = v.Card(children=[title, upper_row, middle_row, lower_row], img="background.jpg", height=750)
+main = v.Card(children=[title, upper_row, middle_row, lower_row], img="background.jpg", height=690)
