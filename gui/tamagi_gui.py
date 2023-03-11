@@ -13,6 +13,7 @@ import get_gnss
 import get_noaa
 import get_sun_data as gsd
 import get_gnss as gnss
+import get_S4 as gs4
 
 
 # ---------- Tool Functions ----------
@@ -53,6 +54,7 @@ def initialize():
     global R, P, SC, N
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
+    SC[0] = gs4.get_s4_index()
     N = gnss.get_GNSS_index()
     # Show indices values
     change_index("R", R[0])
@@ -118,6 +120,7 @@ def refresh(widget, event, data):
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
     N = gnss.get_GNSS_index()
+    SC[0] = gs4.get_s4_index()
     if type(prediction_col.v_model) is int:
         change_index("R", R[prediction_col.v_model])
         change_index("P", P[prediction_col.v_model])
@@ -483,8 +486,56 @@ p_info_close_btn.on_event('click', p_info_close)
 sc_info_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
 satcom_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["SC index info"]),
                                                        sc_info_close_btn], class_="justify-space-between mx-4"),
-                                                       v.CardText(children=["SC0:\n"]
-                                                                  )
+                                                       widgets.HTML("""<table style="border:1px solid black">
+          <colgroup>
+            <col width="7%">
+            <col width="9%">
+            <col width="67%">
+            <col width="17%">  </colgroup>
+          <tbody><tr>
+            <th><strong>Scale</strong></th>
+            <th><strong>Description</strong></th>
+            <th><strong>Effect</strong></th>
+            <th><strong>Average Frequency</strong><br>
+              (1 cycle = 11 years)</th>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_5 numeric_scale">SC 5</td>
+            <td class="scale_description">Extreme</td>
+            <td><p><b>SatCom:</b> Communication may be impossible during the entire event at this scale. No uplink nor 
+              dowlink most probable. Satellites may miss several communications windows with the ground.</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_4 numeric_scale">SC 4</td>
+            <td class="scale_description">Severe</td>
+            <td><p><b>SatCom:</b> Communications may be cut at any moment. A local or regional blackout regarding TC/TM and
+              any satellite broadcast may happen</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_3 numeric_scale">SC 3</td>
+            <td class="scale_description">Strong</td>
+            <td><p><b>SatCom:</b>Perturbations may interfere with nominal communications. A more robust communication protocol
+              could be used in this phase and especially for all above.</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_2 numeric_scale">SC 2</td>
+            <td class="scale_description">Moderate</td>
+            <td><p><b>SatCom</b>Minor to moderate impacts on SatCom. Communications should most probably not be cut and 
+              corrective actions are not yet necessary.</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_1 numeric_scale">SC 1</td>
+            <td class="scale_description">Minor</td>
+            <td>
+              <p><b>SatCom :</b>No or minor impacts on communications with satellites. No corrective action needed.</p>
+            <td>Unknown</td>
+          </tr>
+          </tbody></table>""",
+             layout=widgets.Layout(margin='0px 20px 0px 20px'))
                                                        ],
                                              )
                                       ], width=1000, height=600)
