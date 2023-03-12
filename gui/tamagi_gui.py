@@ -68,12 +68,12 @@ def initialize():
         sns.set(rc={'axes.facecolor': 'lightblue', 'figure.facecolor': 'lightblue'})
         sns.set(rc={'figure.figsize': (9, 2.9)})
         sns.set_style('darkgrid')
-        sns.lineplot(x="time-tag", y="vals", hue="cols", data=ssn_data, palette=['b', 'r'],
+        sns.lineplot(x="time-tag", y="vals", hue="plots", data=ssn_data, palette=['b', 'r'],
                      dashes=False).set(title="Sunspot number (indicator of solar cycle)")
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12*i for i in range(11)])
-        plt.scatter(12, last_measure)
+        plt.scatter(120, last_measure, c='green', marker='D', label='Today')
         plt.show()
     # Get and show GOES proton flux
     with p_out:
@@ -137,12 +137,12 @@ def refresh(widget, event, data):
         sns.set(rc={'axes.facecolor': 'lightblue', 'figure.facecolor': 'lightblue'})
         sns.set(rc={'figure.figsize': (9, 2.9)})
         sns.set_style('darkgrid')
-        sns.lineplot(x="time-tag", y="vals", hue="cols", data=ssn_data, palette=['b', 'r'],
+        sns.lineplot(x="time-tag", y="vals", hue="plots", data=ssn_data, palette=['b', 'r'],
                      dashes=False).set(title="Sunspot number (indicator of solar cycle)")
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12 * i for i in range(11)])
-        plt.scatter(12, last_measure)
+        plt.scatter(120, last_measure, 'o', color='black')
         plt.show()
     # Get and show GNSS map
     data = 0
@@ -582,7 +582,52 @@ sc_info_close_btn.on_event('click', sc_info_close)
 n_info_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
 gnss_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["N index info"]),
                                                      n_info_close_btn], class_="justify-space-between mx-4"),
-                                                     v.CardText(children=["N0:\n"]
+                                                     widgets.HTML("""<table style="border:1px solid black">
+          <colgroup>
+            <col width="7%">
+            <col width="9%">
+            <col width="67%">
+            <col width="17%">  </colgroup>
+          <tbody><tr>
+            <th><strong>Scale</strong></th>
+            <th><strong>Description</strong></th>
+            <th><strong>Effect</strong></th>
+            <th><strong>Average Frequency</strong><br>
+              (1 cycle = 11 years)</th>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_5 numeric_scale">N 5</td>
+            <td class="scale_description">Extreme</td>
+            <td><p><b>GNSS:</b> Very high impacts on GNSS accuracy, high probability of loss of lock</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_4 numeric_scale">N 4</td>
+            <td class="scale_description">Severe</td>
+            <td><p><b>GNSS: </b> High ionospheric impacts on GNSS accuracy, significant probability of loss of lock</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_3 numeric_scale">N 3</td>
+            <td class="scale_description">Strong</td>
+            <td><p><b>GNSS: </b>Medium ionospheric impacts on GNSS accuracy, non negligible probability of loss of lock</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_2 numeric_scale">N 2</td>
+            <td class="scale_description">Moderate</td>
+            <td><p><b>GNSS: </b>Low and/or localized ionospheric impacts on GNSS accuracy</p>
+            <td>Unknown</td>
+          </tr>
+          <tr>
+            <td class="noaa_scale_bg_1 numeric_scale">N 1</td>
+            <td class="scale_description">Minor</td>
+            <td>
+              <p><b>GNSS: </b>Minor ionospheric impact on GNSS accuracy is possible</p>
+            <td>Unknown</td>
+          </tr>
+          </tbody></table>""",
+             layout=widgets.Layout(margin='0px 20px 0px 20px')
                                                                 )
                                                      ],
                                            )

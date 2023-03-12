@@ -164,7 +164,7 @@ def get_sunspot():
                            last_ssn[i + 1]['ssn'] + last_ssn[i + 2]['ssn']) / 5
     ssn_data = pd.DataFrame(last_ssn)
     ssn_data['tendency'] = tendency_ssn
-    ssn_data = ssn_data.melt('time-tag', var_name='cols', value_name='vals')
+    ssn_data = ssn_data.melt('time-tag', var_name='plots', value_name='vals')
     return ssn_data, ssn[-1]['ssn']
 
 
