@@ -179,6 +179,7 @@ def get_goes_proton():
     plt.plot(x_data, y_data)
     plt.xlabel('Time')
     plt.ylabel('Flux')
+    plt.legend(['> 10 MeV particle flux'])
     locator = mdates.AutoDateLocator(minticks=6, maxticks=10)
     formatter = mdates.ConciseDateFormatter(locator)
     ax = plt.gca()
