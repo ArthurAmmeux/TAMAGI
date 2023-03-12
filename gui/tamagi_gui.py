@@ -142,7 +142,7 @@ def refresh(widget, event, data):
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12 * i for i in range(11)])
-        plt.scatter(120, last_measure, 'o', color='black')
+        plt.scatter(120, last_measure, c='green', marker='D', label='Today')
         plt.show()
     # Get and show GNSS map
     data = 0
