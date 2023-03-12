@@ -3,6 +3,8 @@ import shutil
 import urllib.request
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import numpy as np
 
 base_url = "https://services.swpc.noaa.gov"
 
@@ -111,8 +113,8 @@ def calculate_indices(noaa_scales):
     S[0] = noaa_scales.S
     for i in (0, 1):
         R[i+1] = round((2 * noaa_scales.R_forecast[i]['Minor_p'] + 5 * noaa_scales.R_forecast[i]['Major_p'])
-                     /
-                     100)
+                       /
+                       100)
         G[i+1] = noaa_scales.G_forecast[i]
         S[i+1] = round(noaa_scales.S_forecast[i]*5/100)
     for i in range(3):
@@ -162,16 +164,26 @@ def get_sunspot():
                            last_ssn[i + 1]['ssn'] + last_ssn[i + 2]['ssn']) / 5
     ssn_data = pd.DataFrame(last_ssn)
     ssn_data['tendency'] = tendency_ssn
-    return ssn_data
+    ssn_data = ssn_data.melt('time-tag', var_name='cols', value_name='vals')
+    return ssn_data, ssn[-1]['ssn']
 
 
 def get_goes_proton():
     directory = "/json/goes/primary/integral-protons-3-day.json"
     goes_proton = get_json(directory)
-    gp10mev = [{"time": gp["time_tag"], "10 Mev part. flux": gp["flux"]} for gp in goes_proton
+    gp10mev = [{"time": gp["time_tag"], "> 10 MeV particle flux": gp["flux"]} for gp in goes_proton
                if gp["energy"] == ">=10 MeV"]
     gp10mev_data = pd.DataFrame(gp10mev)
-    gp10mev_data.plot(x="time", y="10 Mev part. flux")
+    x_data = np.array(gp10mev_data['time'], dtype='datetime64')
+    y_data = gp10mev_data["> 10 MeV particle flux"]
+    plt.plot(x_data, y_data)
+    plt.xlabel('Time')
+    plt.ylabel('Flux')
+    locator = mdates.AutoDateLocator(minticks=6, maxticks=10)
+    formatter = mdates.ConciseDateFormatter(locator)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
     plt.show()
 
 
@@ -183,4 +195,4 @@ if __name__ == '__main__':
     print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
     """
-    print(get_sunspot())
+    get_goes_proton()

@@ -7,6 +7,7 @@ import glob
 import matplotlib.pyplot as plt
 import seaborn as sns
 import cv2
+from IPython.display import clear_output
 
 # Our packages
 import get_gnss
@@ -14,6 +15,7 @@ import get_noaa
 import get_sun_data as gsd
 import get_gnss as gnss
 import get_S4 as gs4
+import get_muf as gmf
 
 
 # ---------- Tool Functions ----------
@@ -29,11 +31,8 @@ def delete_sun_img(cur_index):
 
 
 def delete_muf_img(cur_index):
-    for filename in glob.glob("./muf_north_pole_*"):
-        if filename != ".\\muf_north_pole_" + cur_index + ".png":
-            os.remove(filename)
-    for filename in glob.glob("./muf_south_pole_*"):
-        if filename != ".\\muf_south_pole_" + cur_index + ".png":
+    for filename in glob.glob("./muf_world_*"):
+        if filename != ".\\muf_world_" + cur_index + ".png":
             os.remove(filename)
 
 
@@ -64,7 +63,7 @@ def initialize():
     # Get Last Bulletin
     bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
     # Get and show sunspots
-    ssn_data = get_noaa.get_sunspot()
+    ssn_data, last_measure = get_noaa.get_sunspot()
     with sunspot_img:
         sns.set(rc={'axes.facecolor': 'lightblue', 'figure.facecolor': 'lightblue'})
         sns.set(rc={'figure.figsize': (9, 2.9)})
@@ -74,7 +73,11 @@ def initialize():
         plt.xlabel("Date")
         plt.ylabel("Monthly average sunspot number")
         plt.xticks([12*i for i in range(11)])
+        plt.scatter(12, last_measure)
         plt.show()
+    # Get and show GOES proton flux
+    with p_out:
+        get_noaa.get_goes_proton()
     # Get and show GNSS map
     data = 0
     array2, gnss_title = get_gnss.display_last_data(data, 0)  # data = 0 -> positioning error, 0-> J+0
@@ -83,10 +86,7 @@ def initialize():
 
     (sz1, sz2) = map_.shape[:2]
     figsz = 10
-    up_limit = 10*(data == 0) + 100*(data == 1)
-    #
-    # up_limit doit être fixé à 10 pour la carte sur l'erreur de positionnement et à 100 pour la proba de LOL
-
+    up_limit = 10*(data == 0) + 100*(data == 1)  # up_limit = 10 for positioning error and 100 for p(LossOfLock)
     with gnss_output:
         plt.figure(figsize=(figsz, figsz * sz2 / sz1))
         plt.imshow(map_)
@@ -100,13 +100,11 @@ def initialize():
     # Get images
     index = get_index()
     gsd.get_sun_img(index)
-    get_noaa.get_muf(index)
+    gmf.get_muf(index)
     sun_img.img = "sun_last_img_" + index + ".jpg"
-    muf_north_img.img = "muf_north_pole_" + index + ".png"
-    muf_south_img.img = "muf_south_pole_" + index + ".png"
+    muf_word_img.img = "muf_world_" + index + ".png"
     delete_sun_img(index)
     delete_muf_img(index)
-    # TODO initialize SC
 
 
 # Refresh all shown indices values
@@ -132,12 +130,50 @@ def refresh(widget, event, data):
         change_index("SC", SC[0])
         change_index("N", N[0])
     bulletin_dialog.children[0].children[1].value = get_noaa.get_bulletin(R, P, SC, N)
+    # Get and show sunspots
+    ssn_data, last_measure = get_noaa.get_sunspot()
+    with sunspot_img:
+        clear_output()
+        sns.set(rc={'axes.facecolor': 'lightblue', 'figure.facecolor': 'lightblue'})
+        sns.set(rc={'figure.figsize': (9, 2.9)})
+        sns.set_style('darkgrid')
+        sns.lineplot(x="time-tag", y="vals", hue="cols", data=ssn_data, palette=['b', 'r'],
+                     dashes=False).set(title="Sunspot number (indicator of solar cycle)")
+        plt.xlabel("Date")
+        plt.ylabel("Monthly average sunspot number")
+        plt.xticks([12 * i for i in range(11)])
+        plt.scatter(12, last_measure)
+        plt.show()
+    # Get and show GNSS map
+    data = 0
+    array2, gnss_title = get_gnss.display_last_data(data, 0)  # data = 0 -> positioning error, 0-> J+0
+    im = cv2.imread("map.jpg")
+    map_ = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+
+    (sz1, sz2) = map_.shape[:2]
+    figsz = 10
+    up_limit = 10 * (data == 0) + 100 * (data == 1)  # up_limit = 10 for positioning error and 100 for p(LossOfLock)
+    with gnss_output:
+        clear_output()
+        plt.figure(figsize=(figsz, figsz * sz2 / sz1))
+        plt.imshow(map_)
+        plt.imshow(array2, alpha=0.6)
+        plt.clim(0, up_limit)
+        plt.colorbar(fraction=0.019, pad=0.04)
+        plt.xticks([])
+        plt.yticks([])
+        plt.title(gnss_title)
+        plt.show()
+    # Get and show GOES proton flux
+    with p_out:
+        clear_output()
+        get_noaa.get_goes_proton()
+    # Get and show images
     index = get_index()
     gsd.get_sun_img(index)
-    get_noaa.get_muf(index)
+    gmf.get_muf(index)
     sun_img.img = "sun_last_img_" + index + ".jpg"
-    muf_north_img.img = "muf_north_pole_" + index + ".png"
-    muf_south_img.img = "muf_south_pole_" + index + ".png"
+    muf_word_img.img = "muf_world_" + index + ".png"
     delete_sun_img(index)
     delete_muf_img(index)
     today_btn.disabled = False
@@ -300,29 +336,29 @@ title = v.CardTitle(class_="d-flex align-start m-1 title font-weight-medium whit
 
 # --- Data pages ---
 # HF Radio page
-muf_north_img = v.Card(children=[], width=675, height=595, class_="my-2 mx-2")
-muf_south_img = v.Card(children=[], width=675, height=595, class_="my-2 mx-2")
+muf_word_img = v.Card(children=[], width=1093, height=547, class_="my-2 mx-2")
 
 hf_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
 hf_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["HF Radio"]),
                                                     hf_close_btn], class_="justify-space-between mx-4"),
-                                              v.CardText(children=["Maximum usable frequency (MUF):\n"]),
-                                              muf_north_img,
-                                              muf_south_img
+                                              v.CardText(children=["Maximum usable frequency (MUF) -> "
+                                                                   "The highest frequency that an HF radio can use"]),
+                                              muf_word_img
                                               ],
                                     )
-                             ], width=1000, height=1200)
+                             ], width=1150, height=1250)
 hf_page.v_model = False
 hf_close_btn.on_event('click', r_close)
 
 # Space Operations page
 p_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+p_out = widgets.Output()
 space_op_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["Space Operations"]),
                                                           p_close_btn], class_="justify-space-between mx-4"),
-                                                    v.CardText(children=["Particle flux:\n"])
-                                                    ],
+                                                    v.CardText(children=["Particle flux:\n"]),
+                                                    p_out],
                                           )
-                                   ], width=800, height=400)
+                                   ], width=900, height=400)
 space_op_page.v_model = False
 p_close_btn.on_event('click', p_close)
 
@@ -333,7 +369,7 @@ satcom_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(ch
                                                   v.CardText(children=["S4 data:\n"])
                                                   ],
                                         )
-                                 ], width=800, height=400)
+                                 ], width=1000, height=400)
 satcom_page.v_model = False
 sc_close_btn.on_event('click', sc_close)
 
@@ -344,7 +380,7 @@ gnss_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(chil
                                                 n_close_btn], class_="justify-space-between mx-4"),
                                                 v.Container(children=[gnss_output])],
                                       )
-                               ], width=800, height=400)
+                               ], width=950, height=400)
 gnss_page.v_model = False
 n_close_btn.on_event('click', n_close)
 

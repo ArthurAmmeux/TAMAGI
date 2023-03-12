@@ -19,7 +19,7 @@ def avg(lis):
 
 def get_st_en_time():
     time = datetime.now()
-    return f"{time.year}-{time.month}-{time.day}%20{time.hour-3}:{time.minute}:{time.second}",\
+    return f"{time.year}-{time.month}-{time.day-1}%20{time.hour}:{time.minute}:{time.second}",\
            f"{time.year}-{time.month}-{time.day}%20{time.hour}:{time.minute}:{time.second}"
 
 
