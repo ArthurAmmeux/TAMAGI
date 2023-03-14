@@ -176,9 +176,10 @@ def get_goes_proton():
     gp10mev_data = pd.DataFrame(gp10mev)
     x_data = np.array(gp10mev_data['time'], dtype='datetime64')
     y_data = gp10mev_data["> 10 MeV particle flux"]
-    plt.plot(x_data, y_data)
+    plt.figure(figsize=(10,6))
+    plt.semilogy(x_data, y_data)
     plt.xlabel('Time')
-    plt.ylabel('Flux')
+    plt.ylabel('Flux ($part.cm^{-1}.s^{-1}.str^{-1}$)')
     plt.legend(['> 10 MeV particle flux'])
     locator = mdates.AutoDateLocator(minticks=6, maxticks=10)
     formatter = mdates.ConciseDateFormatter(locator)

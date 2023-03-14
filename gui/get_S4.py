@@ -4,6 +4,20 @@
 import json
 import urllib.request
 from datetime import datetime
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import numpy as np
+
+
+def low_pass(lis):
+    rtn = np.zeros(len(lis))
+    rtn[0] = lis[0] * 0.7 + lis[1] * 0.2 + lis[2]*0.1
+    rtn[1] = lis[0] * 0.2 + lis[1] * 0.4 + lis[2] * 0.2 + lis[3] * 0.1
+    rtn[-1] = lis[-1] * 0.7 + lis[-2] * 0.2 + lis[-3] * 0.1
+    rtn[-2] = lis[-1] * 0.2 + lis[-2] * 0.4 + lis[-3] * 0.2 + lis[-4] * 0.1
+    for i in range(2, len(lis) - 2):
+        rtn[i] = lis[i - 2] * 0.1 + lis[i - 1] * 0.2 + lis[i] * 0.4 + lis[i + 1] * 0.2 + lis[i + 2] * 0.1
+    return rtn
 
 
 def avg(lis):
@@ -52,7 +66,37 @@ def get_s4_index():
     data_ = [d["s4_l1_vert"] for d in data]
     s4_avg = avg(data_)
     s4_index = s4_avg_to_s4_index(s4_avg)
-    return s4_index
+    return s4_index, data
+
+
+def plot_s4(data):
+    timestamps = set(d["dt"] for d in data)
+    s4_vert = []
+    for timestamp in timestamps:
+        cur_s4 = 0
+        n = 0
+        for d in data:
+            if d['dt'] == timestamp and d['s4_l1_vert'] is not None:
+                cur_s4 += d['s4_l1_vert']
+                n += 1
+        cur_s4 = cur_s4 / n
+        s4_vert.append({'time': timestamp, 's4': cur_s4})
+    x_data = np.array([s4['time'] for s4 in s4_vert], dtype='datetime64')
+    x_data = np.sort(x_data)
+    y_data = low_pass([s4['s4'] for s4 in s4_vert])
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_data, y_data, color='red', lw=0.7)
+    plt.plot(x_data, [0.25]*len(x_data), '--', color='black', lw=1.5)
+    locator = mdates.AutoDateLocator(minticks=6, maxticks=10)
+    formatter = mdates.ConciseDateFormatter(locator)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    plt.grid(True)
+    plt.xlabel('Time')
+    plt.ylabel('S4')
+    plt.legend(['Past day world averaged scintillation', 'SC1 alert level'])
+    plt.show()
 
 
 def main():
@@ -61,29 +105,20 @@ def main():
 
     parameters = get_s4_data(st_time, en_time)
 
-    # print(parameters[0][0].keys())
+    print(parameters[0].keys())
+
+    print(parameters)
 
     timestamps = set(param["dt"] for param in parameters)
-
-    print(timestamps)
-
-    s4_vert = [param["s4_l1_vert"] for param in parameters]
-
-    s4_avg = avg(s4_vert)
+    s4_vert = []
 
     print(s4_vert)
-
-    print(s4_avg)
-
-    s4_index = s4_avg_to_s4_index(s4_avg)
-
-    print(s4_index)
 
 
 if __name__ == "__main__":
     #main()
     #print(s4_avg_to_s4_index(0.5))
-    print(get_s4_index())
+    s4_index, data = get_s4_index()
+    print(s4_index)
+    plot_s4(data)
 
-
-#%%

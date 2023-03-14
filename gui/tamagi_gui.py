@@ -10,6 +10,7 @@ import cv2
 from IPython.display import clear_output
 
 # Our packages
+import get_S4
 import get_gnss
 import get_noaa
 import get_sun_data as gsd
@@ -53,7 +54,7 @@ def initialize():
     global R, P, SC, N
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
-    SC[0] = gs4.get_s4_index()
+    SC[0], s4_data = gs4.get_s4_index()
     N = gnss.get_GNSS_index()
     # Show indices values
     change_index("R", R[0])
@@ -78,6 +79,9 @@ def initialize():
     # Get and show GOES proton flux
     with p_out:
         get_noaa.get_goes_proton()
+    # Get and show S4 data
+    with sc_out:
+        get_S4.plot_s4(s4_data)
     # Get and show GNSS map
     data = 0
     array2, gnss_title = get_gnss.display_last_data(data, 0)  # data = 0 -> positioning error, 0-> J+0
@@ -90,7 +94,7 @@ def initialize():
     with gnss_output:
         plt.figure(figsize=(figsz, figsz * sz2 / sz1))
         plt.imshow(map_)
-        plt.imshow(array2, alpha=0.6)
+        plt.imshow(array2, alpha=0.6, cmap='jet')
         plt.clim(0, up_limit)
         plt.colorbar(fraction=0.019, pad=0.04)
         plt.xticks([])
@@ -118,7 +122,7 @@ def refresh(widget, event, data):
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
     N = gnss.get_GNSS_index()
-    SC[0] = gs4.get_s4_index()
+    SC[0], s4_data = gs4.get_s4_index()
     if type(prediction_col.v_model) is int:
         change_index("R", R[prediction_col.v_model])
         change_index("P", P[prediction_col.v_model])
@@ -157,7 +161,7 @@ def refresh(widget, event, data):
         clear_output()
         plt.figure(figsize=(figsz, figsz * sz2 / sz1))
         plt.imshow(map_)
-        plt.imshow(array2, alpha=0.6)
+        plt.imshow(array2, alpha=0.6, cmap='jet')
         plt.clim(0, up_limit)
         plt.colorbar(fraction=0.019, pad=0.04)
         plt.xticks([])
@@ -168,6 +172,10 @@ def refresh(widget, event, data):
     with p_out:
         clear_output()
         get_noaa.get_goes_proton()
+    # Get and show S4 data
+    with sc_out:
+        clear_output()
+        get_S4.plot_s4(s4_data)
     # Get and show images
     index = get_index()
     gsd.get_sun_img(index)
@@ -358,15 +366,17 @@ space_op_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(
                                                     v.CardText(children=["Particle flux:\n"]),
                                                     p_out],
                                           )
-                                   ], width=900, height=400)
+                                   ], width=1000, height=400)
 space_op_page.v_model = False
 p_close_btn.on_event('click', p_close)
 
 # Satellite Communications page
 sc_close_btn = v.Icon(children=["mdi-close-box-outline"], color="red")
+sc_out = widgets.Output()
 satcom_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle(children=["Satellite Communications"]),
                                                   sc_close_btn], class_="justify-space-between mx-4"),
-                                                  v.CardText(children=["S4 data:\n"])
+                                                  v.CardText(children=["S4 data:\n"]),
+                                                  sc_out
                                                   ],
                                         )
                                  ], width=1000, height=400)
@@ -592,39 +602,38 @@ gnss_info_page = v.Dialog(children=[v.Card(children=[v.Row(children=[v.CardTitle
             <th><strong>Scale</strong></th>
             <th><strong>Description</strong></th>
             <th><strong>Effect</strong></th>
-            <th><strong>Average Frequency</strong><br>
-              (1 cycle = 11 years)</th>
+            <th><strong>Average Frequency</strong></th>
           </tr>
           <tr>
             <td class="noaa_scale_bg_5 numeric_scale">N 5</td>
             <td class="scale_description">Extreme</td>
             <td><p><b>GNSS:</b> Very high impacts on GNSS accuracy, high probability of loss of lock</p>
-            <td>Unknown</td>
+            <td> 2.5%</td>
           </tr>
           <tr>
             <td class="noaa_scale_bg_4 numeric_scale">N 4</td>
             <td class="scale_description">Severe</td>
             <td><p><b>GNSS: </b> High ionospheric impacts on GNSS accuracy, significant probability of loss of lock</p>
-            <td>Unknown</td>
+            <td> 5%</td>
           </tr>
           <tr>
             <td class="noaa_scale_bg_3 numeric_scale">N 3</td>
             <td class="scale_description">Strong</td>
             <td><p><b>GNSS: </b>Medium ionospheric impacts on GNSS accuracy, non negligible probability of loss of lock</p>
-            <td>Unknown</td>
+            <td> 10%</td>
           </tr>
           <tr>
             <td class="noaa_scale_bg_2 numeric_scale">N 2</td>
             <td class="scale_description">Moderate</td>
             <td><p><b>GNSS: </b>Low and/or localized ionospheric impacts on GNSS accuracy</p>
-            <td>Unknown</td>
+            <td> 15%</td>
           </tr>
           <tr>
             <td class="noaa_scale_bg_1 numeric_scale">N 1</td>
             <td class="scale_description">Minor</td>
             <td>
               <p><b>GNSS: </b>Minor ionospheric impact on GNSS accuracy is possible</p>
-            <td>Unknown</td>
+            <td> 25%</td>
           </tr>
           </tbody></table>""",
              layout=widgets.Layout(margin='0px 20px 0px 20px')
@@ -680,9 +689,9 @@ indices_row = v.Row(children=[R_col, P_col, SC_col, N_col],
 time_btn_width = 80
 time_btn_height = 40
 
-today_btn = v.Btn(children=["Today"], width=time_btn_width, height=time_btn_height, color="grey lighten-3")
-j1_btn = v.Btn(children=["J + 1"], width=time_btn_width, height=time_btn_height, color="grey lighten-3")
-j2_btn = v.Btn(children=["J + 2"], width=time_btn_width, height=time_btn_height, color="grey lighten-3")
+today_btn = v.Btn(children=["Now"], width=time_btn_width, height=time_btn_height, color="grey lighten-3")
+j1_btn = v.Btn(children=["D + 1"], width=time_btn_width, height=time_btn_height, color="grey lighten-3")
+j2_btn = v.Btn(children=["D + 2"], width=time_btn_width, height=time_btn_height, color="grey lighten-3")
 
 prediction_col = v.BtnToggle(v_model="toggle_exclusive", children=[today_btn, j1_btn, j2_btn], class_="mx-2")
 prediction_col.on_event('change', prediction_click)
