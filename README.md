@@ -1,7 +1,7 @@
-## TAMAGI
+# TAMAGI
 A tool to monitor space weather
 
-# How to install TAMAGI
+## How to install TAMAGI
 
 Prerequisite: Have a recent python distribution (>3.9)
 
