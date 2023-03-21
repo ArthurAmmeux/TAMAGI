@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
+from datetime import datetime
+from datetime import timedelta
 
 base_url = "https://services.swpc.noaa.gov"
 
@@ -104,10 +106,10 @@ class NoaaScales:
 
 
 def calculate_indices(noaa_scales):
-    R = {0: 0, 1: 0, 2: 0}
-    G = {0: 0, 1: 0, 2: 0}
-    S = {0: 0, 1: 0, 2: 0}
-    P = {0: 0, 1: 0, 2: 0}
+    R = {-1: -1, 0: 0, 1: 0, 2: 0}
+    G = {-1: -1, 0: 0, 1: 0, 2: 0}
+    S = {-1: -1, 0: 0, 1: 0, 2: 0}
+    P = {-1: -1, 0: 0, 1: 0, 2: 0}
     R[0] = noaa_scales.R
     G[0] = noaa_scales.G
     S[0] = noaa_scales.S
@@ -122,7 +124,77 @@ def calculate_indices(noaa_scales):
     return {'R': R, 'P': P}
 
 
+def get_g_dm1():
+    directory = "/products/noaa-planetary-k-index.json"
+    kp_json = get_json(directory)
+    date = datetime.now().date()
+    yesterday = date - timedelta(days=1)
+    avg_kp = 0
+    n_kp = 0
+    for elt in kp_json:
+        if elt[0][:10] == str(yesterday):
+            avg_kp += float(elt[1])
+            n_kp += 1
+    avg_kp = avg_kp/n_kp
+    g = 0
+    if avg_kp >= 5:
+        g = 1
+    if avg_kp >= 6:
+        g = 2
+    if avg_kp >= 7:
+        g = 3
+    if avg_kp >= 8:
+        g = 4
+    if avg_kp > 9:
+        g = 5
+    return g
+
+
+def get_s_dm1():
+    directory = "/json/goes/primary/integral-protons-3-day.json"
+    goes_proton = get_json(directory)
+    date = datetime.now().date()
+    yesterday = date - timedelta(days=1)
+    gp10mev = [gp["flux"] for gp in goes_proton if gp["energy"] == ">=10 MeV" and gp["time_tag"][:10] == str(yesterday)]
+    avg_flux = sum(gp10mev)/len(gp10mev)
+    s = 0
+    if avg_flux > 10:
+        s = 1
+    if avg_flux > 100:
+        s = 2
+    if avg_flux > 1000:
+        s = 3
+    if avg_flux > 10_000:
+        s = 4
+    if avg_flux > 100_000:
+        s = 5
+    return s
+
+
+def get_p_dm1():
+    g = get_g_dm1()
+    s = get_s_dm1()
+    p = round(((g / 5) ** 2 + (s / 5) ** 2) * 5 / 2)
+    return p
+
+
 def get_bulletin(r, p, sc, n):
+    # Handle no data cases
+    r_, p_, sc_, n_ = r.copy(), p.copy(), sc.copy(), n.copy()
+    for i, x in enumerate(r_):
+        if x == -1:
+            r_[i - 1] = "-"
+    for i, x in enumerate(p_):
+        if x == -1:
+            p_[i - 1] = "-"
+    for i, x in enumerate(sc_):
+        if x == -1:
+            sc_[i - 1] = "-"
+    for i, x in enumerate(n_):
+        if x == -1:
+            n_[i - 1] = "-"
+
+    # Get NOAA bulletin
     f = urllib.request.urlopen("https://services.swpc.noaa.gov/text/3-day-forecast.txt") #Read the NOOA official bulletin
     lines = [f.readline().decode('utf-8'), f.readline().decode('utf-8')]
     month = lines[1][14:18]
@@ -130,10 +202,10 @@ def get_bulletin(r, p, sc, n):
 
     content = lines+["<br>TAMAGI Index Forecast :"]  # will be the content of the forecast file
     content.append("<br>&emsp;&emsp;&ensp; "+month+str(day)+"&emsp; "+month+str(day+1)+"&emsp; "+month+str(day+2))
-    content.append("<br>R index"+"&emsp; "+str(r[0])+"&emsp;&emsp;&emsp; "+str(r[1])+"&emsp;&emsp;&emsp; "+str(r[2]))
-    content.append("<br>P index"+"&emsp; "+str(p[0])+"&emsp;&emsp;&emsp; "+str(p[1])+"&emsp;&emsp;&emsp; "+str(p[2]))
-    content.append("<br>SC index"+"&ensp; "+str(sc[0])+"&emsp;&emsp;&emsp; "+str(sc[1])+"&emsp;&emsp;&emsp; "+str(sc[2]))
-    content.append("<br>N index"+"&emsp; "+str(n[0])+"&emsp;&emsp;&emsp; "+str(n[1])+"&emsp;&emsp;&emsp; "+str(n[2]))
+    content.append("<br>R index"+"&emsp; "+str(r_[0])+"&emsp;&emsp;&emsp; "+str(r_[1])+"&emsp;&emsp;&emsp; "+str(r_[2]))
+    content.append("<br>P index"+"&emsp; "+str(p_[0])+"&emsp;&emsp;&emsp; "+str(p_[1])+"&emsp;&emsp;&emsp; "+str(p_[2]))
+    content.append("<br>SC index"+"&ensp; "+str(sc_[0])+"&emsp;&emsp;&emsp; "+str(sc_[1])+"&emsp;&emsp;&emsp; "+str(sc_[2]))
+    content.append("<br>N index"+"&emsp; "+str(n_[0])+"&emsp;&emsp;&emsp; "+str(n_[1])+"&emsp;&emsp;&emsp; "+str(n_[2]))
     content.append("<br>NOOA Bulletin :\n")
     for i, line in enumerate(f):
         content.append("<br>"+line.decode('utf-8'))
@@ -144,8 +216,8 @@ def get_bulletin(r, p, sc, n):
 def get_muf(index):
     directory_north = "/images/animations/d-rap/north-pole/d-rap/latest.png"
     directory_south = "/images/animations/d-rap/south-pole/d-rap/latest.png"
-    get_img(directory_north, f"muf_north_pole_{index}.png")
-    get_img(directory_south, f"muf_south_pole_{index}.png")
+    get_img(directory_north, f"images/muf_north_pole_{index}.png")
+    get_img(directory_south, f"images/muf_south_pole_{index}.png")
 
 
 def get_sunspot():
@@ -176,7 +248,7 @@ def get_goes_proton():
     gp10mev_data = pd.DataFrame(gp10mev)
     x_data = np.array(gp10mev_data['time'], dtype='datetime64')
     y_data = gp10mev_data["> 10 MeV particle flux"]
-    plt.figure(figsize=(10,6))
+    plt.figure(figsize=(10, 6))
     plt.semilogy(x_data, y_data)
     plt.xlabel('Time')
     plt.ylabel('Flux ($part.cm^{-1}.s^{-1}.str^{-1}$)')
@@ -196,5 +268,7 @@ if __name__ == '__main__':
     print(curr_noaa_scales)
     print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
-    """
     get_goes_proton()
+    """
+    print(get_g_dm1())
+    print(get_s_dm1())

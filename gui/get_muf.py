@@ -5,7 +5,7 @@ import os
 
 
 base_url = "https://prop.kc2g.com/renders/current/mufd-normal-now.svg"
-muf_file_prefix = "muf_world"
+muf_file_prefix = "./images/muf_world"
 
 
 def get_muf(index):

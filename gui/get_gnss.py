@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import cv2
 from datetime import datetime
 from datetime import timedelta
+import glob
 
 # ARCHIVE EXTENSIONS
 ZIP_EXTENSION = ".zip"
@@ -278,31 +279,98 @@ def recalibration(I2):
     return I3
 
 
+def delete_temp_data():
+    for filename in glob.glob("./temp_data/*"):
+        os.remove(filename)
+
+
+def remove_outliers(m):
+    for i in range(m.shape[0]):
+        for j in range(m.shape[1]):
+            if m[i, j] > 100:
+                m[i, j] = 100
+    return m
+
+
 def last_GNSS_index(forecast):
     url1 = get_last_url2(1, forecast)
 
     P = silent_read_url(url1)
-    R = silent_read_url(get_last_url2(0, forecast))
+    url2 = get_last_url2(0, forecast)
+    R = silent_read_url(url2)
+
+    delete_temp_data()  # Delete the files that were downloaded
 
     P2 = average_map(P)
+    P2 = remove_outliers(P2)  # Cap values exceeding 100
     R2 = average_map(R)
+    R2 = remove_outliers(R2)  # Cap values exceeding 100
 
     I2 = average2(indice1(P2, R2, 0.5))
     I3 = recalibration(I2)
-
     return I3
 
 
 # Fonctions finales
 
 
-def get_GNSS_index():
+def get_GNSS_index(j2=False):
     J0 = last_GNSS_index(0)
     J1 = last_GNSS_index(1)
-    J2 = 2 * J1 - J0
-    J2 = min(J2, 5)
-    J2 = max(J2, 0)
-    return {0: J0, 1: J1, 2: J2}
+    if j2:
+        J2 = 2 * J1 - J0
+        J2 = min(J2, 5)
+        J2 = max(J2, 0)
+    else:
+        J2 = -1
+    return {-1: -1, 0: J0, 1: J1, 2: J2}
+
+
+def get_GNSS_Jm1():
+    '''A partir d'ici: on s'inspire fortement de la fonction get_last_url_2 avec petite modif '''
+    forecast = 0
+    statut = 404
+    date = datetime.utcnow()
+    date = date - timedelta(days=1)
+    m = date.minute
+
+    if m >= 43:
+        dt = m - 43
+    elif m >= 13:
+        dt = m - 13
+    else:
+        dt = m + 17
+
+    date = date - timedelta(minutes=dt)
+    j = 0
+    deltaT = [1, 29]
+
+    while statut != 200:
+        url1 = build_url(0, forecast, date)
+        url2 = build_url(1, forecast, date)
+        statut = requests.get(url1).status_code
+        date = date - timedelta(minutes=deltaT[j])
+        j = j + 1
+
+    "on a maintenant l'url valable"
+
+    P = silent_read_url(url2)
+    R = silent_read_url(url1)
+
+    P2 = average_map(P)
+    R2 = average_map(
+        np.minimum(R, 10))  # on exclue les valeurs absurdes que l'ont peut rencontrer et qui fausse les calculs
+    I = indice2(P2, R2, 0.5)
+
+    filepath1 = "temp_data/" + url1[82:-3]
+    filepath2 = "temp_data/" + url2[82:-3]
+
+    os.remove(filepath1 + '.dat')
+    os.remove(filepath2 + '.dat')
+    os.remove(filepath1 + '.gz')
+    os.remove(filepath2 + '.gz')
+
+    return recalibration(average2(I))
 
 
 def display_last_data(data, forecast):
@@ -310,10 +378,10 @@ def display_last_data(data, forecast):
     array = silent_read_url(url)
 
     dataname = ['Scintillation impact on positioning error ', 'Lost-of-lock probability ']
-    forecastname = ['nowcasting, ', 'forecast, ']
+    forecastname = ['nowcasting (m), ', 'forecast (m), ']
     txt = '20' + url[-15:-13] + '-' + url[-13:-11] + '-' + url[-11:-9] + ' at ' + url[-9:-7] + ':' + url[-7:-5]
 
-    im = cv2.imread("map.jpg")
+    im = cv2.imread("images/map.jpg")
     map = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     array2 = adapt_res(average_map(array), map)
     title = dataname[data] + forecastname[forecast] + txt

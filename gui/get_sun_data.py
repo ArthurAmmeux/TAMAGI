@@ -3,7 +3,7 @@ import shutil  # save img locally
 
 
 base_url = "https://sdo.gsfc.nasa.gov"
-sun_file_prefix = "sun_last_img_"
+sun_file_prefix = "./images/sun_last_img_"
 
 
 def get_img(directory, index):
