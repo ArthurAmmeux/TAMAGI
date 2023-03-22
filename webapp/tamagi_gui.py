@@ -55,6 +55,7 @@ def initialize():
     R, P = noaa_indices["R"], noaa_indices["P"]
     P[-1] = get_noaa.get_p_dm1()
     SC[0], s4_data = gs4.get_s4_index()
+    SC[-1] = gs4.get_s4m1_index()
     N = gnss.get_GNSS_index()
     N[-1] = get_gnss.get_GNSS_Jm1()
     # Show indices values
@@ -127,6 +128,7 @@ def refresh(widget, event, data):
     N = gnss.get_GNSS_index()
     N[-1] = get_gnss.get_GNSS_Jm1()
     SC[0], s4_data = gs4.get_s4_index()
+    SC[-1] = gs4.get_s4m1_index()
     if type(prediction_col.v_model) is int:
         day = prediction_col.v_model - 1
         change_index("R", R[day])

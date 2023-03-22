@@ -4,6 +4,7 @@
 import json
 import urllib.request
 from datetime import datetime
+from datetime import timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
@@ -33,8 +34,17 @@ def avg(lis):
 
 def get_st_en_time():
     time = datetime.now()
-    return f"{time.year}-{time.month}-{time.day-1}%20{time.hour}:{time.minute}:{time.second}",\
+    ysd = time - timedelta(days=1)
+    return f"{ysd.year}-{ysd.month}-{ysd.day}%20{ysd.hour}:{ysd.minute}:{ysd.second}", \
            f"{time.year}-{time.month}-{time.day}%20{time.hour}:{time.minute}:{time.second}"
+
+
+def get_st_en_ysd():
+    time = datetime.now()
+    ysd = time - timedelta(days=1)
+    dm2 = time - timedelta(days=2)
+    return f"{dm2.year}-{dm2.month}-{dm2.day}%20{dm2.hour}:{dm2.minute}:{dm2.second}", \
+           f"{ysd.year}-{ysd.month}-{ysd.day}%20{ysd.hour}:{ysd.minute}:{ysd.second}"
 
 
 def get_s4_data(st_time, en_time):
@@ -67,6 +77,16 @@ def get_s4_index():
     s4_avg = avg(data_)
     s4_index = s4_avg_to_s4_index(s4_avg)
     return s4_index, data
+
+
+def get_s4m1_index():
+    # Get s4 index from yesterday
+    st_time, en_time = get_st_en_ysd()
+    data = get_s4_data(st_time, en_time)
+    data_ = [d["s4_l1_vert"] for d in data]
+    s4_avg = avg(data_)
+    s4_index = s4_avg_to_s4_index(s4_avg)
+    return s4_index
 
 
 def plot_s4(data):
