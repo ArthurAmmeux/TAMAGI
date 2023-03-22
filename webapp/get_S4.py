@@ -71,6 +71,7 @@ def s4_avg_to_s4_index(s4_avg):
 
 
 def get_s4_index():
+    # Get last s4 index
     st_time, en_time = get_st_en_time()
     data = get_s4_data(st_time, en_time)
     data_ = [d["s4_l1_vert"] for d in data]
@@ -90,6 +91,7 @@ def get_s4m1_index():
 
 
 def plot_s4(data):
+    # Plot s4 data over the last 24h
     timestamps = set(d["dt"] for d in data)
     s4_vert = []
     for timestamp in timestamps:

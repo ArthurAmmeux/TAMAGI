@@ -8,11 +8,12 @@ import numpy as np
 from datetime import datetime
 from datetime import timedelta
 
+# Url of the data server of NOAA
 base_url = "https://services.swpc.noaa.gov"
 
 
 def get_json(directory):
-
+    # Get json data from a directory
     r = requests.get(base_url + directory)
 
     status = r.status_code
@@ -22,6 +23,7 @@ def get_json(directory):
 
 
 def get_img(directory, file_name):
+    # Get an image from a directory with the following file name
     r = requests.get(base_url + directory, stream=True)
 
     status = r.status_code
@@ -34,7 +36,7 @@ def get_img(directory, file_name):
 
 
 def print_raw_indices(noaa_scales):
-
+    # Print indices as stored in the NOAA server
     print('-------------\nToday\n')
     print('R = ', noaa_scales['0']['R']['Scale'])
     print('G = ', noaa_scales['0']['G']['Scale'])
@@ -54,7 +56,7 @@ def print_raw_indices(noaa_scales):
 
 
 class NoaaScales:
-
+    # Class to store online data about 3 day NOAA indices
     directory = '/products/noaa-scales.json'
 
     def __init__(self):
@@ -106,6 +108,7 @@ class NoaaScales:
 
 
 def calculate_indices(noaa_scales):
+    # Calculate TAMAGI indices from NOAA indices and predictions
     R = {-1: -1, 0: 0, 1: 0, 2: 0}
     G = {-1: -1, 0: 0, 1: 0, 2: 0}
     S = {-1: -1, 0: 0, 1: 0, 2: 0}
@@ -125,6 +128,7 @@ def calculate_indices(noaa_scales):
 
 
 def get_g_dm1():
+    # Get NOAA G index from yesterday
     directory = "/products/noaa-planetary-k-index.json"
     kp_json = get_json(directory)
     date = datetime.now().date()
@@ -151,6 +155,7 @@ def get_g_dm1():
 
 
 def get_s_dm1():
+    # Get NOAA S index from yesterday
     directory = "/json/goes/primary/integral-protons-3-day.json"
     goes_proton = get_json(directory)
     date = datetime.now().date()
@@ -172,6 +177,7 @@ def get_s_dm1():
 
 
 def get_p_dm1():
+    # Get TAMAGI P index from yesterday
     g = get_g_dm1()
     s = get_s_dm1()
     p = round(((g / 5) ** 2 + (s / 5) ** 2) * 5 / 2)
@@ -214,6 +220,7 @@ def get_bulletin(r, p, sc, n):
 
 
 def get_muf(index):
+    # Get MUF images from NOAA
     directory_north = "/images/animations/d-rap/north-pole/d-rap/latest.png"
     directory_south = "/images/animations/d-rap/south-pole/d-rap/latest.png"
     get_img(directory_north, f"images/muf_north_pole_{index}.png")
@@ -221,6 +228,7 @@ def get_muf(index):
 
 
 def get_sunspot():
+    # Get sunspot data from last 10 years + latest sunspot number
     directory = "/json/solar-cycle/sunspots.json"
     ssn = get_json(directory)
     last_ssn = ssn[-120:]
@@ -241,6 +249,7 @@ def get_sunspot():
 
 
 def get_goes_proton():
+    # Get and plot GOES > 10 MeV particle flux
     directory = "/json/goes/primary/integral-protons-3-day.json"
     goes_proton = get_json(directory)
     gp10mev = [{"time": gp["time_tag"], "> 10 MeV particle flux": gp["flux"]} for gp in goes_proton
@@ -261,6 +270,28 @@ def get_goes_proton():
     plt.show()
 
 
+def get_r_dm1():
+    # Get NOAA R index from yesterday based on average X-Ray flux from yesterday
+    directory = "/json/goes/primary/xrays-3-day.json"
+    xray_json = get_json(directory)
+    date = datetime.now()
+    ysd = date.date() - timedelta(days=1)
+    x_ray_ysd = [elt['observed_flux'] for elt in xray_json if elt['time_tag'][:10] == str(ysd)]
+    avg_flux = sum(x_ray_ysd)/len(x_ray_ysd)
+    r = 0
+    if avg_flux >= 1e-5:
+        r = 1
+    if avg_flux >= 5e-5:
+        r = 2
+    if avg_flux >= 1e-4:
+        r = 3
+    if avg_flux >= 1e-3:
+        r = 4
+    if avg_flux >= 2e-3:
+        r = 5
+    return r
+
+
 if __name__ == '__main__':
     """
     directory = "/products/noaa-scales.json"
@@ -269,6 +300,7 @@ if __name__ == '__main__':
     print("--- NEW INDICES ---\n")
     print(calculate_indices(curr_noaa_scales))
     get_goes_proton()
-    """
     print(get_g_dm1())
     print(get_s_dm1())
+    """
+    print(get_r_dm1())

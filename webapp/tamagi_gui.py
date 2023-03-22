@@ -53,6 +53,7 @@ def initialize():
     global R, P, SC, N
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
+    R[-1] = get_noaa.get_r_dm1()
     P[-1] = get_noaa.get_p_dm1()
     SC[0], s4_data = gs4.get_s4_index()
     SC[-1] = gs4.get_s4m1_index()
@@ -124,6 +125,7 @@ def refresh(widget, event, data):
     noaa_scales = get_noaa.NoaaScales()
     noaa_indices = get_noaa.calculate_indices(noaa_scales)
     R, P = noaa_indices["R"], noaa_indices["P"]
+    R[-1] = get_noaa.get_r_dm1()
     P[-1] = get_noaa.get_p_dm1()
     N = gnss.get_GNSS_index()
     N[-1] = get_gnss.get_GNSS_Jm1()
@@ -731,7 +733,7 @@ bulletin_btn.on_event('click', bulletin_click)
 
 
 # Sources button
-sources_btn = v.Btn(children=["Sources"], width=80, height=60, color="grey lighten-2", class_="mx-5")
+sources_btn = v.Btn(children=["Sources"], width=100, height=50, color="grey lighten-2", class_="mx-5 my-2")
 sources_btn.on_event('click', sources_click)
 
 
